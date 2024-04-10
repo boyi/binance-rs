@@ -1,7 +1,7 @@
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use std::collections::BTreeMap;
 use std::time::{SystemTime, UNIX_EPOCH};
-use error_chain::bail;
+use crate::bail;
 use serde_json::Value;
 
 pub fn build_request(parameters: BTreeMap<String, String>) -> String {
@@ -16,13 +16,13 @@ pub fn build_request(parameters: BTreeMap<String, String>) -> String {
 
 pub fn build_signed_request(
     parameters: BTreeMap<String, String>, recv_window: u64,
-) -> Result<String> {
+) -> Result<String, BinanceError> {
     build_signed_request_custom(parameters, recv_window, SystemTime::now())
 }
 
 pub fn build_signed_request_custom(
     mut parameters: BTreeMap<String, String>, recv_window: u64, start: SystemTime,
-) -> Result<String> {
+) -> Result<String, BinanceError> {
     if recv_window > 0 {
         parameters.insert("recvWindow".into(), recv_window.to_string());
     }
@@ -41,7 +41,7 @@ pub fn to_f64(v: &Value) -> f64 {
     v.as_str().unwrap().parse().unwrap()
 }
 
-fn get_timestamp(start: SystemTime) -> Result<u64> {
+fn get_timestamp(start: SystemTime) -> Result<u64, BinanceError> {
     let since_epoch = start.duration_since(UNIX_EPOCH)?;
     Ok(since_epoch.as_secs() * 1000 + u64::from(since_epoch.subsec_nanos()) / 1_000_000)
 }

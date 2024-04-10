@@ -1,11 +1,11 @@
-use error_chain::bail;
 
 use crate::model::Empty;
 use crate::futures::model::{ExchangeInformation, ServerTime, Symbol};
 use crate::client::Client;
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use crate::api::API;
 use crate::api::Futures;
+use crate::bail;
 
 #[derive(Clone)]
 pub struct FuturesGeneral {
@@ -14,24 +14,24 @@ pub struct FuturesGeneral {
 
 impl FuturesGeneral {
     // Test connectivity
-    pub fn ping(&self) -> Result<String> {
+    pub fn ping(&self) -> Result<String, BinanceError> {
         self.client.get::<Empty>(API::Futures(Futures::Ping), None)?;
         Ok("pong".into())
     }
 
     // Check server time
-    pub fn get_server_time(&self) -> Result<ServerTime> {
+    pub fn get_server_time(&self) -> Result<ServerTime, BinanceError> {
         self.client.get(API::Futures(Futures::Time), None)
     }
 
     // Obtain exchange information
     // - Current exchange trading rules and symbol information
-    pub fn exchange_info(&self) -> Result<ExchangeInformation> {
+    pub fn exchange_info(&self) -> Result<ExchangeInformation, BinanceError> {
         self.client.get(API::Futures(Futures::ExchangeInfo), None)
     }
 
     // Get Symbol information
-    pub fn get_symbol_info<S>(&self, symbol: S) -> Result<Symbol>
+    pub fn get_symbol_info<S>(&self, symbol: S) -> Result<Symbol, BinanceError>
     where
         S: Into<String>,
     {

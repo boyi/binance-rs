@@ -1,4 +1,4 @@
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use crate::config::Config;
 use crate::model::{
     AccountUpdateEvent, AggrTradesEvent, BookTickerEvent, ContinuousKlineEvent, DayTickerEvent,
@@ -6,7 +6,7 @@ use crate::model::{
     MarkPriceEvent, MiniTickerEvent, OrderBook, TradeEvent, UserDataStreamExpiredEvent,
 };
 use crate::futures::model;
-use error_chain::bail;
+use crate::bail;
 use url::Url;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -75,7 +75,7 @@ pub enum FuturesWebsocketEvent {
 
 pub struct FuturesWebSockets<'a> {
     pub socket: Option<(WebSocket<MaybeTlsStream<TcpStream>>, Response)>,
-    handler: Box<dyn FnMut(FuturesWebsocketEvent) -> Result<()> + 'a>,
+    handler: Box<dyn FnMut(FuturesWebsocketEvent) -> Result<(), BinanceError> + 'a>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -105,7 +105,7 @@ enum FuturesEvents {
 impl<'a> FuturesWebSockets<'a> {
     pub fn new<Callback>(handler: Callback) -> FuturesWebSockets<'a>
     where
-        Callback: FnMut(FuturesWebsocketEvent) -> Result<()> + 'a,
+        Callback: FnMut(FuturesWebsocketEvent) -> Result<(), BinanceError> + 'a,
     {
         FuturesWebSockets {
             socket: None,
@@ -113,13 +113,13 @@ impl<'a> FuturesWebSockets<'a> {
         }
     }
 
-    pub fn connect(&mut self, market: &FuturesMarket, subscription: &'a str) -> Result<()> {
+    pub fn connect(&mut self, market: &FuturesMarket, subscription: &'a str) -> Result<(), BinanceError> {
         self.connect_wss(&FuturesWebsocketAPI::Default.params(market, subscription))
     }
 
     pub fn connect_with_config(
         &mut self, market: &FuturesMarket, subscription: &'a str, config: &'a Config,
-    ) -> Result<()> {
+    ) -> Result<(), BinanceError> {
         self.connect_wss(
             &FuturesWebsocketAPI::Custom(config.ws_endpoint.clone()).params(market, subscription),
         )
@@ -127,11 +127,11 @@ impl<'a> FuturesWebSockets<'a> {
 
     pub fn connect_multiple_streams(
         &mut self, market: &FuturesMarket, endpoints: &[String],
-    ) -> Result<()> {
+    ) -> Result<(), BinanceError> {
         self.connect_wss(&FuturesWebsocketAPI::MultiStream.params(market, &endpoints.join("/")))
     }
 
-    fn connect_wss(&mut self, wss: &str) -> Result<()> {
+    fn connect_wss(&mut self, wss: &str) -> Result<(), BinanceError> {
         let url = Url::parse(wss)?;
         match connect(url) {
             Ok(answer) => {
@@ -142,7 +142,7 @@ impl<'a> FuturesWebSockets<'a> {
         }
     }
 
-    pub fn disconnect(&mut self) -> Result<()> {
+    pub fn disconnect(&mut self) -> Result<(), BinanceError> {
         if let Some(ref mut socket) = self.socket {
             socket.0.close(None)?;
             return Ok(());
@@ -150,11 +150,11 @@ impl<'a> FuturesWebSockets<'a> {
         bail!("Not able to close the connection");
     }
 
-    pub fn test_handle_msg(&mut self, msg: &str) -> Result<()> {
+    pub fn test_handle_msg(&mut self, msg: &str) -> Result<(), BinanceError> {
         self.handle_msg(msg)
     }
 
-    pub fn handle_msg(&mut self, msg: &str) -> Result<()> {
+    pub fn handle_msg(&mut self, msg: &str) -> Result<(), BinanceError> {
         let value: serde_json::Value = serde_json::from_str(msg)?;
 
         if let Some(data) = value.get("data") {
@@ -191,7 +191,7 @@ impl<'a> FuturesWebSockets<'a> {
         Ok(())
     }
 
-    pub fn event_loop(&mut self, running: &AtomicBool) -> Result<()> {
+    pub fn event_loop(&mut self, running: &AtomicBool) -> Result<(), BinanceError> {
         while running.load(Ordering::Relaxed) {
             if let Some(ref mut socket) = self.socket {
                 let message = socket.0.read_message()?;

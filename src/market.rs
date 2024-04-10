@@ -4,7 +4,7 @@ use crate::model::{
     Prices, SymbolPrice, Tickers,
 };
 use crate::client::Client;
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use std::collections::BTreeMap;
 use serde_json::Value;
 use crate::api::API;
@@ -20,7 +20,7 @@ pub struct Market {
 // Market Data endpoints
 impl Market {
     // Order book at the default depth of 100
-    pub fn get_depth<S>(&self, symbol: S) -> Result<OrderBook>
+    pub fn get_depth<S>(&self, symbol: S) -> Result<OrderBook, BinanceError>
     where
         S: Into<String>,
     {
@@ -32,7 +32,7 @@ impl Market {
 
     // Order book at a custom depth. Currently supported values
     // are 5, 10, 20, 50, 100, 500, 1000 and 5000
-    pub fn get_custom_depth<S>(&self, symbol: S, depth: u64) -> Result<OrderBook>
+    pub fn get_custom_depth<S>(&self, symbol: S, depth: u64) -> Result<OrderBook, BinanceError>
     where
         S: Into<String>,
     {
@@ -44,12 +44,12 @@ impl Market {
     }
 
     // Latest price for ALL symbols.
-    pub fn get_all_prices(&self) -> Result<Prices> {
+    pub fn get_all_prices(&self) -> Result<Prices, BinanceError> {
         self.client.get(API::Spot(Spot::Price), None)
     }
 
     // Latest price for ONE symbol.
-    pub fn get_price<S>(&self, symbol: S) -> Result<SymbolPrice>
+    pub fn get_price<S>(&self, symbol: S) -> Result<SymbolPrice, BinanceError>
     where
         S: Into<String>,
     {
@@ -60,7 +60,7 @@ impl Market {
     }
 
     // Average price for ONE symbol.
-    pub fn get_average_price<S>(&self, symbol: S) -> Result<AveragePrice>
+    pub fn get_average_price<S>(&self, symbol: S) -> Result<AveragePrice, BinanceError>
     where
         S: Into<String>,
     {
@@ -72,12 +72,12 @@ impl Market {
 
     // Symbols order book ticker
     // -> Best price/qty on the order book for ALL symbols.
-    pub fn get_all_book_tickers(&self) -> Result<BookTickers> {
+    pub fn get_all_book_tickers(&self) -> Result<BookTickers, BinanceError> {
         self.client.get(API::Spot(Spot::BookTicker), None)
     }
 
     // -> Best price/qty on the order book for ONE symbol
-    pub fn get_book_ticker<S>(&self, symbol: S) -> Result<Tickers>
+    pub fn get_book_ticker<S>(&self, symbol: S) -> Result<Tickers, BinanceError>
     where
         S: Into<String>,
     {
@@ -88,7 +88,7 @@ impl Market {
     }
 
     // 24hr ticker price change statistics
-    pub fn get_24h_price_stats<S>(&self, symbol: S) -> Result<PriceStats>
+    pub fn get_24h_price_stats<S>(&self, symbol: S) -> Result<PriceStats, BinanceError>
     where
         S: Into<String>,
     {
@@ -99,7 +99,7 @@ impl Market {
     }
 
     // 24hr ticker price change statistics for all symbols
-    pub fn get_all_24h_price_stats(&self) -> Result<Vec<PriceStats>> {
+    pub fn get_all_24h_price_stats(&self) -> Result<Vec<PriceStats>, BinanceError> {
         self.client.get(API::Spot(Spot::Ticker24hr), None)
     }
 
@@ -109,7 +109,7 @@ impl Market {
     /// If from_id, start_time and end_time are omitted, the most recent trades are fetched.
     pub fn get_agg_trades<S1, S2, S3, S4, S5>(
         &self, symbol: S1, from_id: S2, start_time: S3, end_time: S4, limit: S5,
-    ) -> Result<Vec<AggTrade>>
+    ) -> Result<Vec<AggTrade>, BinanceError>
     where
         S1: Into<String>,
         S2: Into<Option<u64>>,
@@ -144,7 +144,7 @@ impl Market {
     // https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#klinecandlestick-data
     pub fn get_klines<S1, S2, S3, S4, S5>(
         &self, symbol: S1, interval: S2, limit: S3, start_time: S4, end_time: S5,
-    ) -> Result<KlineSummaries>
+    ) -> Result<KlineSummaries, BinanceError>
     where
         S1: Into<String>,
         S2: Into<String>,
@@ -174,7 +174,7 @@ impl Market {
         let klines = KlineSummaries::AllKlineSummaries(
             data.iter()
                 .map(|row| row.try_into())
-                .collect::<Result<Vec<KlineSummary>>>()?,
+                .collect::<Result<Vec<KlineSummary>, BinanceError>>()?,
         );
 
         Ok(klines)

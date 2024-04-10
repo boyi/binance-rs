@@ -146,7 +146,7 @@ mod tests {
             .set_recv_window(1234);
         let account: FuturesAccount = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let custom_order = CustomOrderRequest {
+        let custom_order = OrderRequest {
             symbol: "SRMUSDT".into(),
             side: OrderSide::Sell,
             position_side: None,
@@ -155,12 +155,13 @@ mod tests {
             qty: None,
             reduce_only: None,
             price: None,
-            stop_price: Some(7.4),
+            stop_price: Some("7.4".to_string()),
             close_position: Some(true),
             activation_price: None,
             callback_rate: None,
             working_type: None,
             price_protect: None,
+            new_client_order_id: None,
         };
         let transaction: Transaction = account.custom_order(custom_order).unwrap();
 

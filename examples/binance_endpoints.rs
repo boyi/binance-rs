@@ -5,7 +5,8 @@ use binance::general::*;
 use binance::account::*;
 use binance::market::*;
 use binance::model::KlineSummary;
-use binance::errors::ErrorKind as BinanceLibErrorKind;
+use binance::errors::BinanceError;
+
 
 fn main() {
     // The general spot API endpoints; shown with
@@ -34,13 +35,13 @@ fn general(use_testnet: bool) {
     match ping {
         Ok(answer) => println!("{:?}", answer),
         Err(err) => {
-            match err.0 {
-                BinanceLibErrorKind::BinanceError(response) => match response.code {
+            match err {
+                BinanceError::BinanceError{ code, msg} => match code {
                     -1000_i16 => println!("An unknown error occured while processing the request"),
-                    _ => println!("Non-catched code {}: {}", response.code, response.msg),
+                    _ => println!("Non-catched code {}: {}", code, msg),
                 },
-                BinanceLibErrorKind::Msg(msg) => println!("Binancelib error msg: {}", msg),
-                _ => println!("Other errors: {}.", err.0),
+                BinanceError::OtherError(msg) => println!("Binancelib error msg: {}", msg),
+                _ => println!("Other errors: {}.", err),
             };
         }
     }
@@ -112,7 +113,7 @@ fn account() {
     }
 
     let order_id = 1_957_528;
-    match account.order_status("WTCETH", order_id) {
+    match account.order_status("WTCETH", Some(order_id), None) {
         Ok(answer) => println!("{:?}", answer),
         Err(e) => println!("Error: {}", e),
     }
@@ -127,7 +128,7 @@ fn account() {
         Err(e) => println!("Error: {}", e),
     }
 
-    match account.trade_history("WTCETH") {
+    match account.trade_history("WTCETH", None) {
         Ok(answer) => println!("{:?}", answer),
         Err(e) => println!("Error: {}", e),
     }

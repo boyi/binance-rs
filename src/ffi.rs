@@ -122,7 +122,7 @@ pub extern "C" fn cancel_order_with_client_id_rs(symbol: *const c_char, orig_cli
         let str_slice = cstr.to_str().expect("Invalid UTF-8 string");
         let rs_orig_client_order_id: String = String::from(str_slice);
         
-        let res = format!("{:?}", ACCOUNT.as_mut().unwrap().cancel_order_with_client_id(rs_symbol, rs_orig_client_order_id));
+        let res = format!("{:?}", ACCOUNT.as_mut().unwrap().cancel_order_with_client_id(rs_symbol, str_slice));
         CString::new(res).unwrap().into_raw() as *mut c_char
     }
 }
@@ -153,19 +153,19 @@ pub extern "C" fn custom_order_rs(
         let rs_qty_str = CStr::from_ptr(qty).to_str().unwrap();
         let rs_qty = match rs_qty_str {
             "" => None,
-            _ => Some(rs_qty_str.parse::<f64>().unwrap()),
+            _ => Some(rs_qty_str.to_string()),
         };
 
         let rs_price_str = CStr::from_ptr(price).to_str().unwrap();
         let rs_price = match rs_price_str {
             "" => None,
-            _ => Some(rs_price_str.parse::<f64>().unwrap()),
+            _ => Some(rs_price_str.to_string()),
         };
 
         let rs_stop_price_str = CStr::from_ptr(stop_price).to_str().unwrap();
         let rs_stop_price = match rs_stop_price_str {
             "" => None,
-            _ => Some(rs_stop_price_str.parse::<f64>().unwrap()),
+            _ => Some(rs_stop_price_str.to_string()),
         };
 
         let rs_callback_rate_str = CStr::from_ptr(callback_rate).to_str().unwrap();
@@ -178,7 +178,7 @@ pub extern "C" fn custom_order_rs(
         let rs_activation_price_str = CStr::from_ptr(activation_price).to_str().unwrap();
         let rs_activation_price = match rs_activation_price_str {
             "" => None,
-            _ => Some(rs_activation_price_str.parse::<f64>().unwrap()),
+            _ => Some(rs_activation_price_str.to_string()),
         };
 
         let rs_order_side_str = CStr::from_ptr(order_side).to_str().unwrap();
@@ -215,7 +215,7 @@ pub extern "C" fn custom_order_rs(
             _ => Some(rs_close_position_str.parse::<bool>().unwrap()),
         };
         
-        let order = CustomOrderRequest {
+        let order = OrderRequest {
             symbol: rs_symbol.to_owned(),
             side: rs_order_side,
             position_side: Some(PositionSide::Both),
@@ -229,7 +229,8 @@ pub extern "C" fn custom_order_rs(
             activation_price: rs_activation_price,
             callback_rate: rs_callback_rate,
             working_type: None,
-            price_protect: None
+            price_protect: None,
+            new_client_order_id: None,
         };
 
         let res = format!("{:?}", ACCOUNT.as_mut().unwrap().custom_order(order));
@@ -268,19 +269,19 @@ pub extern "C" fn batch_orders_rs(
             let rs_qty_str = CStr::from_ptr(qty).to_str().unwrap();
             let rs_qty = match rs_qty_str {
                 "" => None,
-                _ => Some(rs_qty_str.parse::<f64>().unwrap()),
+                _ => Some(rs_qty_str.to_string()),
             };
 
             let rs_price_str = CStr::from_ptr(price).to_str().unwrap();
             let rs_price = match rs_price_str {
                 "" => None,
-                _ => Some(rs_price_str.parse::<f64>().unwrap()),
+                _ => Some(rs_price_str.to_string()),
             };
 
             let rs_stop_price_str = CStr::from_ptr(stop_price).to_str().unwrap();
             let rs_stop_price = match rs_stop_price_str {
                 "" => None,
-                _ => Some(rs_stop_price_str.parse::<f64>().unwrap()),
+                _ => Some(rs_stop_price_str.to_string()),
             };
 
             let rs_callback_rate_str = CStr::from_ptr(callback_rate).to_str().unwrap();
@@ -293,7 +294,7 @@ pub extern "C" fn batch_orders_rs(
             let rs_activation_price_str = CStr::from_ptr(activation_price).to_str().unwrap();
             let rs_activation_price = match rs_activation_price_str {
                 "" => None,
-                _ => Some(rs_activation_price_str.parse::<f64>().unwrap()),
+                _ => Some(rs_activation_price_str.to_string()),
             };
 
             let rs_order_side_str = CStr::from_ptr(order_side).to_str().unwrap();
@@ -344,7 +345,8 @@ pub extern "C" fn batch_orders_rs(
                 activation_price: rs_activation_price,
                 callback_rate: rs_callback_rate,
                 working_type: None,
-                price_protect: None
+                price_protect: None,
+                new_client_order_id: None,
             };
             orders.push(order);
         }
@@ -387,7 +389,7 @@ pub extern "C" fn get_price_rs(symbol: *const c_char) -> *mut c_char {
 
 #[no_mangle]
 // pub fn get_book_ticker<S>(&self, symbol: S) -> Result<Tickers>
-pub extern "C" fn get_book_ticker_rs(symbol: *const c_char) -> *mut c_char {
+pub  extern "C" fn get_book_ticker_rs(symbol: *const c_char) -> *mut c_char {
     unsafe {
         let rs_symbol = CStr::from_ptr(symbol).to_str().unwrap();
 

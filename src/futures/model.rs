@@ -210,8 +210,6 @@ pub struct OpenInterestHist {
 #[serde(rename_all = "camelCase")]
 pub struct Order {
     pub client_order_id: String,
-    #[serde(with = "string_or_float", default = "default_stop_price")]
-    pub cum_qty: f64,
     #[serde(with = "string_or_float")]
     pub cum_quote: f64,
     #[serde(with = "string_or_float")]
@@ -226,7 +224,7 @@ pub struct Order {
     pub side: String,
     pub reduce_only: bool,
     pub position_side: String,
-    pub status: String,
+    pub status: OrderStatus,
     #[serde(with = "string_or_float", default = "default_stop_price")]
     pub stop_price: f64,
     pub close_position: bool,
@@ -242,6 +240,18 @@ pub struct Order {
     pub update_time: u64,
     pub working_type: String,
     pub price_protect: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Copy)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum OrderStatus {
+    New,
+    Filled,
+    Cancelled,
+    Expired,
+    PartiallyFilled,
+    PendingCancel,
+    Rejected,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -262,7 +272,7 @@ pub struct Transaction {
     pub reduce_only: bool,
     pub side: String,
     pub position_side: String,
-    pub status: String,
+    pub status: OrderStatus,
     #[serde(with = "string_or_float")]
     pub stop_price: f64,
     pub close_position: bool,

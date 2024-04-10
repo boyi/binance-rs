@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use crate::util::build_signed_request;
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use crate::client::Client;
 use crate::api::{API, Futures};
 use crate::model::Empty;
@@ -55,8 +55,9 @@ impl Display for PositionSide {
     }
 }
 
+#[derive(Default, Clone)]
 pub enum OrderType {
-    Limit,
+    #[default] Limit,
     Market,
     Stop,
     StopMarket,
@@ -112,21 +113,23 @@ impl Display for TimeInForce {
     }
 }
 
-struct OrderRequest {
+#[derive(Default)]
+pub struct OrderRequest {
     pub symbol: String,
     pub side: OrderSide,
     pub position_side: Option<PositionSide>,
     pub order_type: OrderType,
     pub time_in_force: Option<TimeInForce>,
-    pub qty: Option<f64>,
+    pub qty: Option<String>,
     pub reduce_only: Option<bool>,
-    pub price: Option<f64>,
-    pub stop_price: Option<f64>,
+    pub price: Option<String>,
+    pub stop_price: Option<String>,
     pub close_position: Option<bool>,
-    pub activation_price: Option<f64>,
+    pub activation_price: Option<String>,
     pub callback_rate: Option<f64>,
     pub working_type: Option<WorkingType>,
-    pub price_protect: Option<f64>,
+    pub price_protect: Option<String>,
+    pub new_client_order_id: Option<String>,
 }
 
 pub struct CustomOrderRequest {
@@ -135,15 +138,16 @@ pub struct CustomOrderRequest {
     pub position_side: Option<PositionSide>,
     pub order_type: OrderType,
     pub time_in_force: Option<TimeInForce>,
-    pub qty: Option<f64>,
+    pub qty: Option<String>,
     pub reduce_only: Option<bool>,
-    pub price: Option<f64>,
-    pub stop_price: Option<f64>,
+    pub price: Option<String>,
+    pub stop_price: Option<String>,
     pub close_position: Option<bool>,
-    pub activation_price: Option<f64>,
+    pub activation_price: Option<String>,
     pub callback_rate: Option<f64>,
     pub working_type: Option<WorkingType>,
-    pub price_protect: Option<f64>,
+    pub price_protect: Option<String>,
+    pub new_client_order_id: Option<String>,
 }
 
 pub struct IncomeRequest {
@@ -205,16 +209,16 @@ impl Display for IncomeType {
 
 impl FuturesAccount {
     pub fn limit_buy(
-        &self, symbol: impl Into<String>, qty: impl Into<f64>, price: f64,
+        &self, symbol: impl Into<String>, qty: impl Into<f64>, price: String,
         time_in_force: TimeInForce,
-    ) -> Result<Transaction> {
+    ) -> Result<Transaction, BinanceError> {
         let buy = OrderRequest {
             symbol: symbol.into(),
             side: OrderSide::Buy,
             position_side: None,
             order_type: OrderType::Limit,
             time_in_force: Some(time_in_force),
-            qty: Some(qty.into()),
+            qty: Some(qty.into().to_string()),
             reduce_only: None,
             price: Some(price),
             stop_price: None,
@@ -223,6 +227,7 @@ impl FuturesAccount {
             callback_rate: None,
             working_type: None,
             price_protect: None,
+            new_client_order_id: None,
         };
         let order = self.build_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
@@ -233,22 +238,23 @@ impl FuturesAccount {
     pub fn limit_sell(
         &self, symbol: impl Into<String>, qty: impl Into<f64>, price: f64,
         time_in_force: TimeInForce,
-    ) -> Result<Transaction> {
+    ) -> Result<Transaction, BinanceError> {
         let sell = OrderRequest {
             symbol: symbol.into(),
             side: OrderSide::Sell,
             position_side: None,
             order_type: OrderType::Limit,
             time_in_force: Some(time_in_force),
-            qty: Some(qty.into()),
+            qty: Some(qty.into().to_string()),
             reduce_only: None,
-            price: Some(price),
+            price: Some(price.to_string()),
             stop_price: None,
             close_position: None,
             activation_price: None,
             callback_rate: None,
             working_type: None,
             price_protect: None,
+            new_client_order_id: None,
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
@@ -257,7 +263,7 @@ impl FuturesAccount {
     }
 
     // Place a MARKET order - BUY
-    pub fn market_buy<S, F>(&self, symbol: S, qty: F) -> Result<Transaction>
+    pub fn market_buy<S, F>(&self, symbol: S, qty: F) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -268,7 +274,7 @@ impl FuturesAccount {
             position_side: None,
             order_type: OrderType::Market,
             time_in_force: None,
-            qty: Some(qty.into()),
+            qty: Some(qty.into().to_string()),
             reduce_only: None,
             price: None,
             stop_price: None,
@@ -277,6 +283,7 @@ impl FuturesAccount {
             callback_rate: None,
             working_type: None,
             price_protect: None,
+            new_client_order_id: None,
         };
         let order = self.build_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
@@ -285,7 +292,7 @@ impl FuturesAccount {
     }
 
     // Place a MARKET order - SELL
-    pub fn market_sell<S, F>(&self, symbol: S, qty: F) -> Result<Transaction>
+    pub fn market_sell<S, F>(&self, symbol: S, qty: F) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -296,7 +303,7 @@ impl FuturesAccount {
             position_side: None,
             order_type: OrderType::Market,
             time_in_force: None,
-            qty: Some(qty.into()),
+            qty: Some(qty.into().to_string()),
             reduce_only: None,
             price: None,
             stop_price: None,
@@ -305,6 +312,8 @@ impl FuturesAccount {
             callback_rate: None,
             working_type: None,
             price_protect: None,
+            new_client_order_id: None,
+            
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
@@ -312,7 +321,7 @@ impl FuturesAccount {
             .post_signed(API::Futures(Futures::Order), request)
     }
 
-    pub fn cancel_order<S>(&self, symbol: S, order_id: u64) -> Result<CanceledOrder>
+    pub fn cancel_order<S>(&self, symbol: S, order_id: u64) -> Result<CanceledOrder, BinanceError>
     where
         S: Into<String>,
     {
@@ -326,14 +335,14 @@ impl FuturesAccount {
     }
 
     pub fn cancel_order_with_client_id<S>(
-        &self, symbol: S, orig_client_order_id: String,
-    ) -> Result<CanceledOrder>
+        &self, symbol: S, orig_client_order_id: S,
+    ) -> Result<CanceledOrder, BinanceError>
     where
         S: Into<String>,
     {
         let mut parameters = BTreeMap::new();
         parameters.insert("symbol".into(), symbol.into());
-        parameters.insert("origClientOrderId".into(), orig_client_order_id);
+        parameters.insert("origClientOrderId".into(), orig_client_order_id.into());
 
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
@@ -341,7 +350,7 @@ impl FuturesAccount {
     }
 
     // Place a STOP_MARKET close - BUY
-    pub fn stop_market_close_buy<S, F>(&self, symbol: S, stop_price: F) -> Result<Transaction>
+    pub fn stop_market_close_buy<S, F>(&self, symbol: S, stop_price: F) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -355,21 +364,40 @@ impl FuturesAccount {
             qty: None,
             reduce_only: None,
             price: None,
-            stop_price: Some(stop_price.into()),
+            stop_price: Some(stop_price.into().to_string()),
             close_position: Some(true),
             activation_price: None,
             callback_rate: None,
             working_type: None,
             price_protect: None,
+            new_client_order_id: None,
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
             .post_signed(API::Futures(Futures::Order), request)
     }
+    
+    // Check an order's status
+    pub fn order_status<S>(&self, symbol: S, order_id: Option<u64>, order_client_id: Option<&str>) -> Result<Order, BinanceError>
+    where
+        S: Into<String>,
+    {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        parameters.insert("symbol".into(), symbol.into());
+        if let Some(order_id) = order_id {
+            parameters.insert("orderId".into(), order_id.to_string());
+        }
+        if let Some(order_client_id) = order_client_id {
+            parameters.insert("origClientOrderId".into(), order_client_id.into());
+        }
+        let request = build_signed_request(parameters, self.recv_window)?;
+        self.client
+            .get_signed(API::Futures(Futures::Order), Some(request))
+    }
 
     // Place a STOP_MARKET close - SELL
-    pub fn stop_market_close_sell<S, F>(&self, symbol: S, stop_price: F) -> Result<Transaction>
+    pub fn stop_market_close_sell<S, F>(&self, symbol: S, stop_price: F) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -383,12 +411,13 @@ impl FuturesAccount {
             qty: None,
             reduce_only: None,
             price: None,
-            stop_price: Some(stop_price.into()),
+            stop_price: Some(stop_price.into().to_string()),
             close_position: Some(true),
             activation_price: None,
             callback_rate: None,
             working_type: None,
             price_protect: None,
+            new_client_order_id: None,
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
@@ -397,31 +426,15 @@ impl FuturesAccount {
     }
 
     // Custom order for for professional traders
-    pub fn custom_order(&self, order_request: CustomOrderRequest) -> Result<Transaction> {
-        let order = OrderRequest {
-            symbol: order_request.symbol,
-            side: order_request.side,
-            position_side: order_request.position_side,
-            order_type: order_request.order_type,
-            time_in_force: order_request.time_in_force,
-            qty: order_request.qty,
-            reduce_only: order_request.reduce_only,
-            price: order_request.price,
-            stop_price: order_request.stop_price,
-            close_position: order_request.close_position,
-            activation_price: order_request.activation_price,
-            callback_rate: order_request.callback_rate,
-            working_type: order_request.working_type,
-            price_protect: order_request.price_protect,
-        };
-        let order = self.build_order(order);
+    pub fn custom_order(&self, order_request: OrderRequest) -> Result<Transaction, BinanceError> {
+        let order = self.build_order(order_request);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
             .post_signed(API::Futures(Futures::Order), request)
     }
 
     // Custom order for for professional traders
-    pub fn custom_batch_orders(&self, _order_count: u64, order_requests: Vec<CustomOrderRequest>) -> Result<Transaction> {
+    pub fn custom_batch_orders(&self, _order_count: u64, order_requests: Vec<CustomOrderRequest>) -> Result<Transaction, BinanceError> {
         let request = String::from("");
         for order_request in order_requests {
             let order = OrderRequest {
@@ -439,6 +452,7 @@ impl FuturesAccount {
                 callback_rate: order_request.callback_rate,
                 working_type: order_request.working_type,
                 price_protect: order_request.price_protect,
+                new_client_order_id: order_request.new_client_order_id,
             };
             let _order = self.build_order(order);
             // TODO : make a request string for batch orders api
@@ -450,7 +464,7 @@ impl FuturesAccount {
 
     pub fn get_all_orders<S, F, N>(
         &self, symbol: S, order_id: F, start_time: F, end_time: F, limit: N,
-    ) -> Result<Vec<Order>>
+    ) -> Result<Vec<Order>, BinanceError>
     where
         S: Into<String>,
         F: Into<Option<u64>>,
@@ -478,7 +492,7 @@ impl FuturesAccount {
 
     pub fn get_user_trades<S, F, N>(
         &self, symbol: S, from_id: F, start_time: F, end_time: F, limit: N,
-    ) -> Result<Vec<TradeHistory>>
+    ) -> Result<Vec<TradeHistory>, BinanceError>
     where
         S: Into<String>,
         F: Into<Option<u64>>,
@@ -552,7 +566,7 @@ impl FuturesAccount {
         parameters
     }
 
-    pub fn position_information<S>(&self, symbol: S) -> Result<Vec<PositionRisk>>
+    pub fn position_information<S>(&self, symbol: S) -> Result<Vec<PositionRisk>, BinanceError>
     where
         S: Into<String>,
     {
@@ -564,7 +578,7 @@ impl FuturesAccount {
             .get_signed(API::Futures(Futures::PositionRisk), Some(request))
     }
 
-    pub fn account_information(&self) -> Result<AccountInformation> {
+    pub fn account_information(&self) -> Result<AccountInformation, BinanceError> {
         let parameters = BTreeMap::new();
 
         let request = build_signed_request(parameters, self.recv_window)?;
@@ -572,7 +586,7 @@ impl FuturesAccount {
             .get_signed(API::Futures(Futures::Account), Some(request))
     }
 
-    pub fn account_balance(&self) -> Result<Vec<AccountBalance>> {
+    pub fn account_balance(&self) -> Result<Vec<AccountBalance>, BinanceError> {
         let parameters = BTreeMap::new();
 
         let request = build_signed_request(parameters, self.recv_window)?;
@@ -582,7 +596,7 @@ impl FuturesAccount {
 
     pub fn change_initial_leverage<S>(
         &self, symbol: S, leverage: u8,
-    ) -> Result<ChangeLeverageResponse>
+    ) -> Result<ChangeLeverageResponse, BinanceError>
     where
         S: Into<String>,
     {
@@ -595,7 +609,7 @@ impl FuturesAccount {
             .post_signed(API::Futures(Futures::ChangeInitialLeverage), request)
     }
 
-    pub fn change_position_mode(&self, dual_side_position: bool) -> Result<()> {
+    pub fn change_position_mode(&self, dual_side_position: bool) -> Result<(), BinanceError> {
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
         let dual_side = if dual_side_position { "true" } else { "false" };
         parameters.insert("dualSidePosition".into(), dual_side.into());
@@ -606,7 +620,7 @@ impl FuturesAccount {
             .map(|_| ())
     }
 
-    pub fn cancel_all_open_orders<S>(&self, symbol: S) -> Result<()>
+    pub fn cancel_all_open_orders<S>(&self, symbol: S) -> Result<(), BinanceError>
     where
         S: Into<String>,
     {
@@ -618,7 +632,7 @@ impl FuturesAccount {
             .map(|_| ())
     }
 
-    pub fn get_all_open_orders<S>(&self, symbol: S) -> Result<Vec<crate::futures::model::Order>>
+    pub fn get_all_open_orders<S>(&self, symbol: S) -> Result<Vec<crate::futures::model::Order>, BinanceError>
     where
         S: Into<String>,
     {
@@ -631,7 +645,7 @@ impl FuturesAccount {
 
     pub fn get_income(
         &self, income_request: IncomeRequest,
-    ) -> Result<Vec<crate::futures::model::Income>> {
+    ) -> Result<Vec<crate::futures::model::Income>, BinanceError> {
         let mut parameters: BTreeMap<String, String> = BTreeMap::new();
         if let Some(symbol) = income_request.symbol {
             parameters.insert("symbol".into(), symbol);

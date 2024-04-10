@@ -1,10 +1,10 @@
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use crate::config::Config;
 use crate::model::{
     AccountUpdateEvent, AggrTradesEvent, BalanceUpdateEvent, BookTickerEvent, DayTickerEvent,
     WindowTickerEvent, DepthOrderBookEvent, KlineEvent, OrderBook, OrderTradeEvent, TradeEvent,
 };
-use error_chain::bail;
+use crate::bail;
 use url::Url;
 use serde::{Deserialize, Serialize};
 
@@ -55,7 +55,7 @@ pub enum WebsocketEvent {
 
 pub struct WebSockets<'a> {
     pub socket: Option<(WebSocket<MaybeTlsStream<TcpStream>>, Response)>,
-    handler: Box<dyn FnMut(WebsocketEvent) -> Result<()> + 'a>,
+    handler: Box<dyn FnMut(WebsocketEvent) -> Result<(), BinanceError> + 'a>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -79,7 +79,7 @@ enum Events {
 impl<'a> WebSockets<'a> {
     pub fn new<Callback>(handler: Callback) -> WebSockets<'a>
     where
-        Callback: FnMut(WebsocketEvent) -> Result<()> + 'a,
+        Callback: FnMut(WebsocketEvent) -> Result<(), BinanceError> + 'a,
     {
         WebSockets {
             socket: None,
@@ -87,19 +87,19 @@ impl<'a> WebSockets<'a> {
         }
     }
 
-    pub fn connect(&mut self, subscription: &str) -> Result<()> {
+    pub fn connect(&mut self, subscription: &str) -> Result<(), BinanceError> {
         self.connect_wss(&WebsocketAPI::Default.params(subscription))
     }
 
-    pub fn connect_with_config(&mut self, subscription: &str, config: &Config) -> Result<()> {
+    pub fn connect_with_config(&mut self, subscription: &str, config: &Config) -> Result<(), BinanceError> {
         self.connect_wss(&WebsocketAPI::Custom(config.ws_endpoint.clone()).params(subscription))
     }
 
-    pub fn connect_multiple_streams(&mut self, endpoints: &[String]) -> Result<()> {
+    pub fn connect_multiple_streams(&mut self, endpoints: &[String]) -> Result<(), BinanceError> {
         self.connect_wss(&WebsocketAPI::MultiStream.params(&endpoints.join("/")))
     }
 
-    fn connect_wss(&mut self, wss: &str) -> Result<()> {
+    fn connect_wss(&mut self, wss: &str) -> Result<(), BinanceError> {
         let url = Url::parse(wss)?;
         match connect(url) {
             Ok(answer) => {
@@ -110,7 +110,7 @@ impl<'a> WebSockets<'a> {
         }
     }
 
-    pub fn disconnect(&mut self) -> Result<()> {
+    pub fn disconnect(&mut self) -> Result<(), BinanceError> {
         if let Some(ref mut socket) = self.socket {
             socket.0.close(None)?;
             return Ok(());
@@ -118,11 +118,11 @@ impl<'a> WebSockets<'a> {
         bail!("Not able to close the connection");
     }
 
-    pub fn test_handle_msg(&mut self, msg: &str) -> Result<()> {
+    pub fn test_handle_msg(&mut self, msg: &str) -> Result<(), BinanceError> {
         self.handle_msg(msg)
     }
 
-    pub fn handle_msg(&mut self, msg: &str) -> Result<()> {
+    pub fn handle_msg(&mut self, msg: &str) -> Result<(), BinanceError> {
         let value: serde_json::Value = serde_json::from_str(msg)?;
 
         if let Some(data) = value.get("data") {
@@ -151,7 +151,7 @@ impl<'a> WebSockets<'a> {
         Ok(())
     }
 
-    pub fn event_loop(&mut self, running: &AtomicBool) -> Result<()> {
+    pub fn event_loop(&mut self, running: &AtomicBool) -> Result<(), BinanceError> {
         while running.load(Ordering::Relaxed) {
             if let Some(ref mut socket) = self.socket {
                 let message = socket.0.read_message()?;

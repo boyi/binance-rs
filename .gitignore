@@ -4,3 +4,6 @@ Cargo.lock
 *.fmt
 *.iml
 .idea/*
+
+*.so
+*.o

@@ -1,7 +1,7 @@
 use crate::util::build_signed_request;
 use crate::model::{AssetDetail, CoinInfo, DepositAddress, SpotFuturesTransferType, TransactionId};
 use crate::client::Client;
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use std::collections::BTreeMap;
 use crate::api::API;
 use crate::api::Sapi;
@@ -14,14 +14,14 @@ pub struct Savings {
 
 impl Savings {
     /// Get all coins available for deposit and withdrawal
-    pub fn get_all_coins(&self) -> Result<Vec<CoinInfo>> {
+    pub fn get_all_coins(&self) -> Result<Vec<CoinInfo>, BinanceError> {
         let request = build_signed_request(BTreeMap::new(), self.recv_window)?;
         self.client
             .get_signed(API::Savings(Sapi::AllCoins), Some(request))
     }
 
     /// Fetch details of assets supported on Binance.
-    pub fn asset_detail(&self, asset: Option<String>) -> Result<BTreeMap<String, AssetDetail>> {
+    pub fn asset_detail(&self, asset: Option<String>) -> Result<BTreeMap<String, AssetDetail>, BinanceError> {
         let mut parameters = BTreeMap::new();
         if let Some(asset) = asset {
             parameters.insert("asset".into(), asset);
@@ -35,7 +35,7 @@ impl Savings {
     ///
     /// You can get the available networks using `get_all_coins`.
     /// If no network is specified, the address for the default network is returned.
-    pub fn deposit_address<S>(&self, coin: S, network: Option<String>) -> Result<DepositAddress>
+    pub fn deposit_address<S>(&self, coin: S, network: Option<String>) -> Result<DepositAddress, BinanceError>
     where
         S: Into<String>,
     {
@@ -51,7 +51,7 @@ impl Savings {
 
     pub fn transfer_funds<S>(
         &self, asset: S, amount: f64, transfer_type: SpotFuturesTransferType,
-    ) -> Result<TransactionId>
+    ) -> Result<TransactionId, BinanceError>
     where
         S: Into<String>,
     {

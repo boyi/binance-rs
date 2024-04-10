@@ -1,7 +1,8 @@
-use error_chain::bail;
+
 use hex::encode as hex_encode;
 use hmac::{Hmac, Mac};
-use crate::errors::{BinanceContentError, ErrorKind, Result};
+use crate::errors::BinanceContentError;
+use crate::{bail, errors::BinanceError};
 use reqwest::StatusCode;
 use reqwest::blocking::Response;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT, CONTENT_TYPE};
@@ -14,6 +15,7 @@ pub struct Client {
     api_key: String,
     secret_key: String,
     host: String,
+    // inner_client: reqwest::Client, // Changed to non-blocking client
     inner_client: reqwest::blocking::Client,
 }
 
@@ -32,7 +34,7 @@ impl Client {
 
     pub fn get_signed<T: DeserializeOwned>(
         &self, endpoint: API, request: Option<String>,
-    ) -> Result<T> {
+    ) -> Result<T, BinanceError> {
         let url = self.sign_request(endpoint, request);
         let client = &self.inner_client;
         let response = client
@@ -43,7 +45,7 @@ impl Client {
         self.handler(response)
     }
 
-    pub fn post_signed<T: DeserializeOwned>(&self, endpoint: API, request: String) -> Result<T> {
+    pub fn post_signed<T: DeserializeOwned>(&self, endpoint: API, request: String) -> Result<T, BinanceError> {
         let url = self.sign_request(endpoint, Some(request));
         let client = &self.inner_client;
         let response = client
@@ -56,7 +58,7 @@ impl Client {
 
     pub fn delete_signed<T: DeserializeOwned>(
         &self, endpoint: API, request: Option<String>,
-    ) -> Result<T> {
+    ) -> Result<T, BinanceError> {
         let url = self.sign_request(endpoint, request);
         let client = &self.inner_client;
         let response = client
@@ -67,7 +69,7 @@ impl Client {
         self.handler(response)
     }
 
-    pub fn get<T: DeserializeOwned>(&self, endpoint: API, request: Option<String>) -> Result<T> {
+    pub fn get<T: DeserializeOwned>(&self, endpoint: API, request: Option<String>) -> Result<T, BinanceError> {
         let mut url: String = format!("{}{}", self.host, String::from(endpoint));
         if let Some(request) = request {
             if !request.is_empty() {
@@ -81,7 +83,7 @@ impl Client {
         self.handler(response)
     }
 
-    pub fn post<T: DeserializeOwned>(&self, endpoint: API) -> Result<T> {
+    pub fn post<T: DeserializeOwned>(&self, endpoint: API) -> Result<T, BinanceError> {
         let url: String = format!("{}{}", self.host, String::from(endpoint));
 
         let client = &self.inner_client;
@@ -93,7 +95,7 @@ impl Client {
         self.handler(response)
     }
 
-    pub fn put<T: DeserializeOwned>(&self, endpoint: API, listen_key: &str) -> Result<T> {
+    pub fn put<T: DeserializeOwned>(&self, endpoint: API, listen_key: &str) -> Result<T, BinanceError> {
         let url: String = format!("{}{}", self.host, String::from(endpoint));
         let data: String = format!("listenKey={}", listen_key);
 
@@ -107,7 +109,7 @@ impl Client {
         self.handler(response)
     }
 
-    pub fn delete<T: DeserializeOwned>(&self, endpoint: API, listen_key: &str) -> Result<T> {
+    pub fn delete<T: DeserializeOwned>(&self, endpoint: API, listen_key: &str) -> Result<T, BinanceError> {
         let url: String = format!("{}{}", self.host, String::from(endpoint));
         let data: String = format!("listenKey={}", listen_key);
 
@@ -138,7 +140,7 @@ impl Client {
         }
     }
 
-    fn build_headers(&self, content_type: bool) -> Result<HeaderMap> {
+    fn build_headers(&self, content_type: bool) -> Result<HeaderMap, BinanceError> {
         let mut custom_headers = HeaderMap::new();
 
         custom_headers.insert(USER_AGENT, HeaderValue::from_static("binance-rs"));
@@ -156,25 +158,25 @@ impl Client {
         Ok(custom_headers)
     }
 
-    fn handler<T: DeserializeOwned>(&self, response: Response) -> Result<T> {
+    fn handler<T: DeserializeOwned>(&self, response: Response) -> Result<T, BinanceError> {
         match response.status() {
             StatusCode::OK => Ok(response.json::<T>()?),
             StatusCode::INTERNAL_SERVER_ERROR => {
-                bail!("Internal Server Error");
+                bail!("Internal Server Error")
             }
             StatusCode::SERVICE_UNAVAILABLE => {
-                bail!("Service Unavailable");
+                bail!("Service Unavailable")
             }
             StatusCode::UNAUTHORIZED => {
-                bail!("Unauthorized");
+                bail!("Unauthorized")
             }
             StatusCode::BAD_REQUEST => {
                 let error: BinanceContentError = response.json()?;
 
-                Err(ErrorKind::BinanceError(error).into())
+                Err(BinanceError::BinanceError { code: error.code, msg: error.msg })
             }
             s => {
-                bail!(format!("Received response: {:?}", s));
+                bail!(format!("Received response: {:?}", s))
             }
         }
     }

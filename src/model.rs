@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use std::convert::TryFrom;
-use crate::errors::{Error, ErrorKind, Result};
+use crate::errors::BinanceError;
 
 #[derive(Deserialize, Clone)]
 pub struct Empty {}
@@ -160,7 +160,7 @@ pub struct Order {
     pub orig_qty: String,
     pub executed_qty: String,
     pub cummulative_quote_qty: String,
-    pub status: String,
+    pub status: OrderStatus,
     pub time_in_force: String,
     #[serde(rename = "type")]
     pub type_name: String,
@@ -197,6 +197,18 @@ pub struct TransactionId {
     pub tran_id: u64,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Copy)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum OrderStatus {
+    New,
+    Filled,
+    Cancelled,
+    Expired,
+    PartiallyFilled,
+    PendingCancel,
+    Rejected,
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Transaction {
@@ -215,7 +227,7 @@ pub struct Transaction {
     pub cummulative_quote_qty: f64,
     #[serde(with = "string_or_float", default = "default_stop_price")]
     pub stop_price: f64,
-    pub status: String,
+    pub status: OrderStatus,
     pub time_in_force: String,
     #[serde(rename = "type")]
     pub type_name: String,
@@ -341,6 +353,8 @@ pub struct TradeHistory {
     pub price: f64,
     #[serde(with = "string_or_float")]
     pub qty: f64,
+    #[serde(with = "string_or_float")]
+    pub quote_qty: f64,
     pub commission: String,
     pub commission_asset: String,
     pub time: u64,
@@ -1020,17 +1034,17 @@ pub struct KlineSummary {
     pub taker_buy_quote_asset_volume: String,
 }
 
-fn get_value(row: &[Value], index: usize, name: &'static str) -> Result<Value> {
+fn get_value(row: &[Value], index: usize, name: &'static str) -> Result<Value, BinanceError> {
     Ok(row
         .get(index)
-        .ok_or_else(|| ErrorKind::KlineValueMissingError(index, name))?
+        .ok_or_else(|| BinanceError::KlineValueMissingError{index, name})?
         .clone())
 }
 
 impl TryFrom<&Vec<Value>> for KlineSummary {
-    type Error = Error;
+    type Error = BinanceError;
 
-    fn try_from(row: &Vec<Value>) -> Result<Self> {
+    fn try_from(row: &Vec<Value>) -> Result<Self, BinanceError> {
         Ok(Self {
             open_time: from_value(get_value(row, 0, "open_time")?)?,
             open: from_value(get_value(row, 1, "open")?)?,

@@ -26,7 +26,7 @@ use crate::futures::model::{
     OpenInterest, OpenInterestHist, OrderBook, PriceStats, SymbolPrice, Tickers, Trades,
 };
 use crate::client::Client;
-use crate::errors::Result;
+use crate::errors::BinanceError;
 use std::collections::BTreeMap;
 use serde_json::Value;
 use crate::api::API;
@@ -46,7 +46,7 @@ pub struct FuturesMarket {
 
 impl FuturesMarket {
     // Order book (Default 100; max 1000)
-    pub fn get_depth<S>(&self, symbol: S) -> Result<OrderBook>
+    pub fn get_depth<S>(&self, symbol: S) -> Result<OrderBook, BinanceError>
     where
         S: Into<String>,
     {
@@ -60,7 +60,7 @@ impl FuturesMarket {
 
     // Order book at a custom depth. Currently supported values
     // are 5, 10, 20, 50, 100, 500, 1000
-    pub fn get_custom_depth<S>(&self, symbol: S, depth: u64) -> Result<OrderBook>
+    pub fn get_custom_depth<S>(&self, symbol: S, depth: u64) -> Result<OrderBook, BinanceError>
     where
         S: Into<String>,
     {
@@ -71,7 +71,7 @@ impl FuturesMarket {
         self.client.get(API::Futures(Futures::Depth), Some(request))
     }
 
-    pub fn get_trades<S>(&self, symbol: S) -> Result<Trades>
+    pub fn get_trades<S>(&self, symbol: S) -> Result<Trades, BinanceError>
     where
         S: Into<String>,
     {
@@ -85,7 +85,7 @@ impl FuturesMarket {
     // TODO This may be incomplete, as it hasn't been tested
     pub fn get_historical_trades<S1, S2, S3>(
         &self, symbol: S1, from_id: S2, limit: S3,
-    ) -> Result<Trades>
+    ) -> Result<Trades, BinanceError>
     where
         S1: Into<String>,
         S2: Into<Option<u64>>,
@@ -111,7 +111,7 @@ impl FuturesMarket {
 
     pub fn get_agg_trades<S1, S2, S3, S4, S5>(
         &self, symbol: S1, from_id: S2, start_time: S3, end_time: S4, limit: S5,
-    ) -> Result<AggTrades>
+    ) -> Result<AggTrades, BinanceError>
     where
         S1: Into<String>,
         S2: Into<Option<u64>>,
@@ -147,7 +147,7 @@ impl FuturesMarket {
     // https://github.com/binance-exchange/binance-official-api-docs/blob/master/rest-api.md#klinecandlestick-data
     pub fn get_klines<S1, S2, S3, S4, S5>(
         &self, symbol: S1, interval: S2, limit: S3, start_time: S4, end_time: S5,
-    ) -> Result<KlineSummaries>
+    ) -> Result<KlineSummaries, BinanceError>
     where
         S1: Into<String>,
         S2: Into<String>,
@@ -180,14 +180,14 @@ impl FuturesMarket {
         let klines = KlineSummaries::AllKlineSummaries(
             data.iter()
                 .map(|row| row.try_into())
-                .collect::<Result<Vec<KlineSummary>>>()?,
+                .collect::<Result<Vec<KlineSummary>, BinanceError>>()?,
         );
 
         Ok(klines)
     }
 
     // 24hr ticker price change statistics
-    pub fn get_24h_price_stats<S>(&self, symbol: S) -> Result<PriceStats>
+    pub fn get_24h_price_stats<S>(&self, symbol: S) -> Result<PriceStats, BinanceError>
     where
         S: Into<String>,
     {
@@ -201,12 +201,12 @@ impl FuturesMarket {
     }
 
     // 24hr ticker price change statistics for all symbols
-    pub fn get_all_24h_price_stats(&self) -> Result<Vec<PriceStats>> {
+    pub fn get_all_24h_price_stats(&self) -> Result<Vec<PriceStats>, BinanceError> {
         self.client.get(API::Futures(Futures::Ticker24hr), None)
     }
 
     // Latest price for ONE symbol.
-    pub fn get_price<S>(&self, symbol: S) -> Result<SymbolPrice>
+    pub fn get_price<S>(&self, symbol: S) -> Result<SymbolPrice, BinanceError>
     where
         S: Into<String>,
     {
@@ -220,18 +220,18 @@ impl FuturesMarket {
     }
 
     // Latest price for all symbols.
-    pub fn get_all_prices(&self) -> Result<crate::model::Prices> {
+    pub fn get_all_prices(&self) -> Result<crate::model::Prices, BinanceError> {
         self.client.get(API::Futures(Futures::TickerPrice), None)
     }
 
     // Symbols order book ticker
     // -> Best price/qty on the order book for ALL symbols.
-    pub fn get_all_book_tickers(&self) -> Result<BookTickers> {
+    pub fn get_all_book_tickers(&self) -> Result<BookTickers, BinanceError> {
         self.client.get(API::Futures(Futures::BookTicker), None)
     }
 
     // -> Best price/qty on the order book for ONE symbol
-    pub fn get_book_ticker<S>(&self, symbol: S) -> Result<Tickers>
+    pub fn get_book_ticker<S>(&self, symbol: S) -> Result<Tickers, BinanceError>
     where
         S: Into<String>,
     {
@@ -242,15 +242,15 @@ impl FuturesMarket {
             .get(API::Futures(Futures::BookTicker), Some(request))
     }
 
-    pub fn get_mark_prices(&self) -> Result<MarkPrices> {
+    pub fn get_mark_prices(&self) -> Result<MarkPrices, BinanceError> {
         self.client.get(API::Futures(Futures::PremiumIndex), None)
     }
 
-    pub fn get_all_liquidation_orders(&self) -> Result<LiquidationOrders> {
+    pub fn get_all_liquidation_orders(&self) -> Result<LiquidationOrders, BinanceError> {
         self.client.get(API::Futures(Futures::AllForceOrders), None)
     }
 
-    pub fn open_interest<S>(&self, symbol: S) -> Result<OpenInterest>
+    pub fn open_interest<S>(&self, symbol: S) -> Result<OpenInterest, BinanceError>
     where
         S: Into<String>,
     {
@@ -263,7 +263,7 @@ impl FuturesMarket {
 
     pub fn open_interest_statistics<S1, S2, S3, S4, S5>(
         &self, symbol: S1, period: S2, limit: S3, start_time: S4, end_time: S5,
-    ) -> Result<Vec<OpenInterestHist>>
+    ) -> Result<Vec<OpenInterestHist>, BinanceError>
     where
         S1: Into<String>,
         S2: Into<String>,

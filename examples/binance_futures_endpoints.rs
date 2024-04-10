@@ -2,7 +2,8 @@ use binance::api::*;
 use binance::futures::general::*;
 use binance::futures::market::*;
 use binance::futures::model::*;
-use binance::errors::ErrorKind as BinanceLibErrorKind;
+use binance::errors::BinanceError;
+
 
 fn main() {
     general();
@@ -16,13 +17,13 @@ fn general() {
     match general.ping() {
         Ok(answer) => println!("{:?}", answer),
         Err(err) => {
-            match err.0 {
-                BinanceLibErrorKind::BinanceError(response) => match response.code {
+            match err {
+                BinanceError::BinanceError{code, msg} => match code {
                     -1000_i16 => println!("An unknown error occured while processing the request"),
-                    _ => println!("Non-catched code {}: {}", response.code, response.msg),
+                    _ => println!("Non-catched code {}: {}", code, msg),
                 },
-                BinanceLibErrorKind::Msg(msg) => println!("Binancelib error msg: {}", msg),
-                _ => println!("Other errors: {}.", err.0),
+                BinanceError::OtherError(msg) => println!("Binancelib error msg: {}", msg),
+                _ => println!("Other errors: {}.", err),
             };
         }
     }

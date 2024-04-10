@@ -106,7 +106,7 @@ mod tests {
         assert_eq!(open_order.orig_qty, "1.0");
         assert_eq!(open_order.executed_qty, "0.0");
         assert_eq!(open_order.cummulative_quote_qty, "0.0");
-        assert_eq!(open_order.status, "NEW");
+        assert_eq!(open_order.status, OrderStatus::New);
         assert_eq!(open_order.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(open_order.type_name, "LIMIT");
         assert_eq!(open_order.side, "BUY");
@@ -147,7 +147,7 @@ mod tests {
         assert_eq!(open_order.orig_qty, "1.0");
         assert_eq!(open_order.executed_qty, "0.0");
         assert_eq!(open_order.cummulative_quote_qty, "0.0");
-        assert_eq!(open_order.status, "NEW");
+        assert_eq!(open_order.status, OrderStatus::New);
         assert_eq!(open_order.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(open_order.type_name, "LIMIT");
         assert_eq!(open_order.side, "BUY");
@@ -222,7 +222,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let order_status: Order = account.order_status("LTCBTC", 1).unwrap();
+        let order_status: Order = account.order_status("LTCBTC", Some(1), None).unwrap();
 
         mock_order_status.assert();
 
@@ -234,7 +234,7 @@ mod tests {
         assert_eq!(order_status.orig_qty, "1.0");
         assert_eq!(order_status.executed_qty, "0.0");
         assert_eq!(order_status.cummulative_quote_qty, "0.0");
-        assert_eq!(order_status.status, "NEW");
+        assert_eq!(order_status.status, OrderStatus::New);
         assert_eq!(order_status.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(order_status.type_name, "LIMIT");
         assert_eq!(order_status.side, "BUY");
@@ -299,7 +299,7 @@ mod tests {
             0.0,
             ulps = 2
         ));
-        assert_eq!(transaction.status, "NEW");
+        assert_eq!(transaction.status, OrderStatus::New); // Fix: Compare with OrderStatus enum variant
         assert_eq!(transaction.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(transaction.type_name, "LIMIT");
         assert_eq!(transaction.side, "BUY");
@@ -356,7 +356,7 @@ mod tests {
             0.0,
             ulps = 2
         ));
-        assert_eq!(transaction.status, "NEW");
+        assert_eq!(transaction.status, OrderStatus::New);
         assert_eq!(transaction.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(transaction.type_name, "LIMIT");
         assert_eq!(transaction.side, "SELL");
@@ -416,7 +416,7 @@ mod tests {
             0.0,
             ulps = 2
         ));
-        assert_eq!(transaction.status, "NEW");
+        assert_eq!(transaction.status, OrderStatus::New);
         assert_eq!(transaction.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(transaction.type_name, "MARKET");
         assert_eq!(transaction.side, "BUY");
@@ -524,7 +524,7 @@ mod tests {
             0.0,
             ulps = 2
         ));
-        assert_eq!(transaction.status, "NEW");
+        assert_eq!(transaction.status, OrderStatus::New);
         assert_eq!(transaction.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(transaction.type_name, "MARKET");
         assert_eq!(transaction.side, "SELL");
@@ -632,7 +632,7 @@ mod tests {
             ulps = 2
         ));
         assert!(approx_eq!(f64, transaction.stop_price, 0.09, ulps = 2));
-        assert_eq!(transaction.status, "NEW");
+        assert_eq!(transaction.status, OrderStatus::New);
         assert_eq!(transaction.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(transaction.type_name, "STOP_LOSS_LIMIT");
         assert_eq!(transaction.side, "BUY");
@@ -694,7 +694,7 @@ mod tests {
             ulps = 2
         ));
         assert!(approx_eq!(f64, transaction.stop_price, 0.09, ulps = 2));
-        assert_eq!(transaction.status, "NEW");
+        assert_eq!(transaction.status, OrderStatus::New);
         assert_eq!(transaction.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(transaction.type_name, "STOP_LOSS_LIMIT");
         assert_eq!(transaction.side, "SELL");
@@ -765,7 +765,7 @@ mod tests {
             ulps = 2
         ));
         assert!(approx_eq!(f64, transaction.stop_price, 0.09, ulps = 2));
-        assert_eq!(transaction.status, "NEW");
+        assert_eq!(transaction.status, OrderStatus::New);
         assert_eq!(transaction.time_in_force, "GTC"); //Migrate to TimeInForce enum
         assert_eq!(transaction.type_name, "STOP_LOSS_LIMIT");
         assert_eq!(transaction.side, "SELL");
@@ -864,7 +864,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let histories = account.trade_history("BTCUSDT").unwrap();
+        let histories = account.trade_history("BTCUSDT", None).unwrap();
 
         mock_trade_history.assert();
 

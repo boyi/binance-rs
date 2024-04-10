@@ -1,9 +1,8 @@
-use error_chain::bail;
-
+use crate::errors::BinanceError;
 use crate::model::{Empty, ExchangeInformation, ServerTime, Symbol};
 use crate::client::Client;
-use crate::errors::Result;
 use crate::api::API;
+use crate::bail;
 use crate::api::Spot;
 
 #[derive(Clone)]
@@ -13,24 +12,24 @@ pub struct General {
 
 impl General {
     // Test connectivity
-    pub fn ping(&self) -> Result<String> {
+    pub fn ping(&self) -> Result<String, BinanceError> {
         self.client.get::<Empty>(API::Spot(Spot::Ping), None)?;
         Ok("pong".into())
     }
 
     // Check server time
-    pub fn get_server_time(&self) -> Result<ServerTime> {
+    pub fn get_server_time(&self) -> Result<ServerTime, BinanceError> {
         self.client.get(API::Spot(Spot::Time), None)
     }
 
     // Obtain exchange information
     // - Current exchange trading rules and symbol information
-    pub fn exchange_info(&self) -> Result<ExchangeInformation> {
+    pub fn exchange_info(&self) -> Result<ExchangeInformation, BinanceError> {
         self.client.get(API::Spot(Spot::ExchangeInfo), None)
     }
 
     // Get Symbol information
-    pub fn get_symbol_info<S>(&self, symbol: S) -> Result<Symbol>
+    pub fn get_symbol_info<S>(&self, symbol: S) -> Result<Symbol, BinanceError>
     where
         S: Into<String>,
     {
