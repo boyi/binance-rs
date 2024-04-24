@@ -523,6 +523,7 @@ impl FuturesAccount {
         parameters.insert("side".into(), order.side.to_string());
         parameters.insert("type".into(), order.order_type.to_string());
 
+
         if let Some(position_side) = order.position_side {
             parameters.insert("positionSide".into(), position_side.to_string());
         }
@@ -561,6 +562,10 @@ impl FuturesAccount {
                 "priceProtect".into(),
                 price_protect.to_string().to_uppercase(),
             );
+        }
+
+        if let Some(new_client_order_id) = order.new_client_order_id {
+            parameters.insert("newClientOrderId".into(), new_client_order_id);
         }
 
         parameters

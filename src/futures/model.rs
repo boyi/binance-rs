@@ -247,10 +247,10 @@ pub struct Order {
 pub enum OrderStatus {
     New,
     Filled,
-    Cancelled,
+    Canceled,
     Expired,
-    PartiallyFilled,
-    PendingCancel,
+    Partially_Filled,
+    Pending_Cancel,
     Rejected,
 }
 
