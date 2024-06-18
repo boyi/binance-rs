@@ -28,7 +28,8 @@ pub mod general;
 pub mod market;
 pub mod savings;
 pub mod userstream;
+pub mod websockets_async;
 pub mod websockets;
-
 pub mod futures;
+pub mod websocket;
 pub mod ffi;

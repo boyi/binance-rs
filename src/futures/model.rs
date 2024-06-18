@@ -244,6 +244,7 @@ pub struct Order {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Copy)]
 #[serde(rename_all = "UPPERCASE")]
+#[allow(non_camel_case_types)]
 pub enum OrderStatus {
     New,
     Filled,

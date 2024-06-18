@@ -6,8 +6,8 @@ use binance::websockets::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 
-
-fn main() {
+#[tokio::main]
+async fn main() {
     //user_stream();
     //user_stream_websocket();
     //market_websocket();
@@ -19,20 +19,20 @@ fn main() {
 
 }
 
-fn user_stream() {
+async fn user_stream() {
     let api_key_user = Some("YOUR_API_KEY".into());
     let user_stream: UserStream = Binance::new(api_key_user, None);
 
-    if let Ok(answer) = user_stream.start() {
+    if let Ok(answer) = user_stream.start().await {
         println!("Data Stream Started ...");
         let listen_key = answer.listen_key;
 
-        match user_stream.keep_alive(&listen_key) {
+        match user_stream.keep_alive(&listen_key).await {
             Ok(msg) => println!("Keepalive user data stream: {:?}", msg),
             Err(e) => println!("Error: {}", e),
         }
 
-        match user_stream.close(&listen_key) {
+        match user_stream.close(&listen_key).await {
             Ok(msg) => println!("Close user data stream: {:?}", msg),
             Err(e) => println!("Error: {}", e),
         }
@@ -41,12 +41,12 @@ fn user_stream() {
     }
 }
 
-fn user_stream_websocket() {
+async fn user_stream_websocket() {
     let keep_running = AtomicBool::new(true); // Used to control the event loop
     let api_key_user = Some("YOUR_KEY".into());
     let user_stream: UserStream = Binance::new(api_key_user, None);
 
-    if let Ok(answer) = user_stream.start() {
+    if let Ok(answer) = user_stream.start().await {
         let listen_key = answer.listen_key;
 
         let mut web_socket: WebSockets<'_> = WebSockets::new(|event: WebsocketEvent| {
@@ -78,7 +78,7 @@ fn user_stream_websocket() {
         if let Err(e) = web_socket.event_loop(&keep_running) {
             println!("Error: {}", e);
         }
-        user_stream.close(&listen_key).unwrap();
+        user_stream.close(&listen_key).await.unwrap();
         web_socket.disconnect().unwrap();
         println!("Userstrem closed and disconnected");
     } else {

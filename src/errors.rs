@@ -30,6 +30,8 @@ pub enum BinanceError {
     #[error(transparent)]
     Tungstenite(#[from] tungstenite::Error),
     #[error(transparent)]
+    TokioTungstenite(#[from] tokio_tungstenite::tungstenite::Error),
+    #[error(transparent)]
     TimestampError(#[from] std::time::SystemTimeError),
     #[error("binance error: {0}")]
     OtherError(String),

@@ -199,6 +199,7 @@ pub struct TransactionId {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Copy)]
 #[serde(rename_all = "UPPERCASE")]
+#[allow(non_camel_case_types)]
 pub enum OrderStatus {
     New,
     Filled,
@@ -432,9 +433,62 @@ pub struct AccountUpdateEvent {
     #[serde(rename = "E")]
     pub event_time: u64,
 
+    #[serde(rename = "T")]
+    pub transaction_time: u64,
+
     #[serde(rename = "a")]
     pub data: AccountUpdateDataEvent,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FutureBalanceUpdateEvent {
+    #[serde(rename = "e")]
+    pub event_type: String,
+
+    #[serde(rename = "E")]
+    pub event_time: u64,
+
+    #[serde(rename = "a")]
+    pub asset : String,
+
+    #[serde(rename = "d")]
+    pub balance_delta: String,
+
+    #[serde(rename = "T")]
+    pub clear_time: u64,
+}
+
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OutboundAccountPositionEvent {
+    #[serde(rename = "e")]
+    pub event_type: String,
+
+    #[serde(rename = "E")]
+    pub event_time: u64,
+
+    #[serde(rename = "u")]
+    pub last_account_update_time: u64,
+
+    #[serde(rename = "B")]
+    pub balances: Vec<OutboundPosition>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct OutboundPosition {
+    #[serde(rename = "a")]
+    pub asset: String,
+
+    #[serde(rename = "f")]
+    pub free: String,
+
+    #[serde(rename = "l")]
+    pub locked: String,
+}
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -471,6 +525,8 @@ pub struct EventPosition {
     pub position_amount: String,
     #[serde(rename = "ep")]
     pub entry_price: String,
+    #[serde(rename = "bep")]
+    pub breakeven_price: String,
     #[serde(rename = "cr")]
     pub accumulated_realized: String, // (Pre-fee) Accumulated Realized
     #[serde(rename = "up")]
@@ -793,6 +849,34 @@ pub struct BookTickerEvent {
 
     #[serde(rename = "A")]
     pub best_ask_qty: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FuturesBookTickerEvent {
+    #[serde(rename = "u")]
+    pub update_id: u64,
+
+    #[serde(rename = "s")]
+    pub symbol: String,
+
+    #[serde(rename = "b")]
+    pub best_bid: String,
+
+    #[serde(rename = "B")]
+    pub best_bid_qty: String,
+
+    #[serde(rename = "a")]
+    pub best_ask: String,
+
+    #[serde(rename = "A")]
+    pub best_ask_qty: String,
+
+    #[serde(rename = "E")]
+    pub event_time: u64,
+
+    #[serde(rename = "T")]
+    pub transaction_time: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

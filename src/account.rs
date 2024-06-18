@@ -119,18 +119,18 @@ impl Display for TimeInForce {
 
 impl Account {
     // Account Information
-    pub fn get_account(&self) -> Result<AccountInformation, BinanceError> {
+    pub async fn get_account(&self) -> Result<AccountInformation, BinanceError> {
         let request = build_signed_request(BTreeMap::new(), self.recv_window)?;
         self.client
-            .get_signed(API::Spot(Spot::Account), Some(request))
+            .get_signed(API::Spot(Spot::Account), Some(request)).await
     }
 
     // Balance for a single Asset
-    pub fn get_balance<S>(&self, asset: S) -> Result<Balance, BinanceError>
+    pub async fn get_balance<S>(&self, asset: S) -> Result<Balance, BinanceError>
     where
         S: Into<String>,
     {
-        match self.get_account() {
+        match self.get_account().await {
             Ok(account) => {
                 let cmp_asset = asset.into();
                 for balance in account.balances {
@@ -145,7 +145,7 @@ impl Account {
     }
 
     // Current open orders for ONE symbol
-    pub fn get_open_orders<S>(&self, symbol: S) -> Result<Vec<Order>, BinanceError>
+    pub async fn get_open_orders<S>(&self, symbol: S) -> Result<Vec<Order>, BinanceError>
     where
         S: Into<String>,
     {
@@ -154,20 +154,20 @@ impl Account {
 
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .get_signed(API::Spot(Spot::OpenOrders), Some(request))
+            .get_signed(API::Spot(Spot::OpenOrders), Some(request)).await
     }
 
     // All current open orders
-    pub fn get_all_open_orders(&self) -> Result<Vec<Order>, BinanceError> {
+    pub async fn get_all_open_orders(&self) -> Result<Vec<Order>, BinanceError> {
         let parameters: BTreeMap<String, String> = BTreeMap::new();
 
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .get_signed(API::Spot(Spot::OpenOrders), Some(request))
+            .get_signed(API::Spot(Spot::OpenOrders), Some(request)).await
     }
 
     // Cancel all open orders for a single symbol
-    pub fn cancel_all_open_orders<S>(&self, symbol: S) -> Result<Vec<OrderCanceled>, BinanceError>
+    pub async fn cancel_all_open_orders<S>(&self, symbol: S) -> Result<Vec<OrderCanceled>, BinanceError>
     where
         S: Into<String>,
     {
@@ -175,11 +175,11 @@ impl Account {
         parameters.insert("symbol".into(), symbol.into());
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .delete_signed(API::Spot(Spot::OpenOrders), Some(request))
+            .delete_signed(API::Spot(Spot::OpenOrders), Some(request)).await
     }
 
     // Check an order's status
-    pub fn order_status<S>(&self, symbol: S, order_id: Option<u64>, order_client_id: Option<&str>) -> Result<Order, BinanceError>
+    pub async fn order_status<S>(&self, symbol: S, order_id: Option<u64>, order_client_id: Option<&str>) -> Result<Order, BinanceError>
     where
         S: Into<String>,
     {
@@ -193,13 +193,13 @@ impl Account {
         }
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .get_signed(API::Spot(Spot::Order), Some(request))
+            .get_signed(API::Spot(Spot::Order), Some(request)).await
     }
 
     /// Place a test status order
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_order_status<S>(&self, symbol: S, order_id: u64) -> Result<(), BinanceError>
+    pub async fn test_order_status<S>(&self, symbol: S, order_id: u64) -> Result<(), BinanceError>
     where
         S: Into<String>,
     {
@@ -209,11 +209,11 @@ impl Account {
 
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .get_signed::<Empty>(API::Spot(Spot::OrderTest), Some(request))
+            .get_signed::<Empty>(API::Spot(Spot::OrderTest), Some(request)).await
             .map(|_| ())
     }
 
-    pub fn place_order<S, F>(&self, symbol: S, qty: F, 
+    pub async fn place_order<S, F>(&self, symbol: S, qty: F, 
         price: Option<String>, 
         stop_price: Option<String>, 
         order_side: &OrderSide, 
@@ -245,11 +245,11 @@ impl Account {
         let request = build_signed_request(parameters, self.recv_window)?;
         // dbg!(&request);
         self.client
-            .post_signed(API::Spot(Spot::Order), request)
+            .post_signed(API::Spot(Spot::Order), request).await
     }
 
     // Place a LIMIT order - BUY
-    pub fn limit_buy<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<Transaction, BinanceError>
+    pub async fn limit_buy<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -266,13 +266,13 @@ impl Account {
         };
         let order = self.build_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Place a test limit order - BUY
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_limit_buy<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<(), BinanceError>
+    pub async fn test_limit_buy<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<(), BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -290,12 +290,12 @@ impl Account {
         let order = self.build_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
     // Place a LIMIT order - SELL
-    pub fn limit_sell<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<Transaction, BinanceError>
+    pub async fn limit_sell<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -312,13 +312,13 @@ impl Account {
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Place a test LIMIT order - SELL
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_limit_sell<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<(), BinanceError>
+    pub async fn test_limit_sell<S, F>(&self, symbol: S, qty: F, price: f64) -> Result<(), BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -336,12 +336,12 @@ impl Account {
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
     // Place a MARKET order - BUY
-    pub fn market_buy<S, F>(&self, symbol: S, qty: F) -> Result<Transaction, BinanceError>
+    pub async fn market_buy<S, F>(&self, symbol: S, qty: F) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -358,13 +358,13 @@ impl Account {
         };
         let order = self.build_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Place a test MARKET order - BUY
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_market_buy<S, F>(&self, symbol: S, qty: F) -> Result<(), BinanceError>
+    pub async fn test_market_buy<S, F>(&self, symbol: S, qty: F) -> Result<(), BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -382,12 +382,12 @@ impl Account {
         let order = self.build_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
     // Place a MARKET order with quote quantity - BUY
-    pub fn market_buy_using_quote_quantity<S, F>(
+    pub async fn market_buy_using_quote_quantity<S, F>(
         &self, symbol: S, quote_order_qty: F,
     ) -> Result<Transaction, BinanceError>
     where
@@ -405,13 +405,13 @@ impl Account {
         };
         let order = self.build_quote_quantity_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Place a test MARKET order with quote quantity - BUY
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_market_buy_using_quote_quantity<S, F>(
+    pub async fn test_market_buy_using_quote_quantity<S, F>(
         &self, symbol: S, quote_order_qty: F,
     ) -> Result<(), BinanceError>
     where
@@ -430,12 +430,12 @@ impl Account {
         let order = self.build_quote_quantity_order(buy);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
     // Place a MARKET order - SELL
-    pub fn market_sell<S, F>(&self, symbol: S, qty: F) -> Result<Transaction, BinanceError>
+    pub async fn market_sell<S, F>(&self, symbol: S, qty: F) -> Result<Transaction, BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -452,13 +452,13 @@ impl Account {
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Place a test MARKET order - SELL
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_market_sell<S, F>(&self, symbol: S, qty: F) -> Result<(), BinanceError>
+    pub async fn test_market_sell<S, F>(&self, symbol: S, qty: F) -> Result<(), BinanceError>
     where
         S: Into<String>,
         F: Into<f64>,
@@ -476,12 +476,12 @@ impl Account {
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
     // Place a MARKET order with quote quantity - SELL
-    pub fn market_sell_using_quote_quantity<S, F>(
+    pub async fn market_sell_using_quote_quantity<S, F>(
         &self, symbol: S, quote_order_qty: F,
     ) -> Result<Transaction, BinanceError>
     where
@@ -499,13 +499,13 @@ impl Account {
         };
         let order = self.build_quote_quantity_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Place a test MARKET order with quote quantity - SELL
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_market_sell_using_quote_quantity<S, F>(
+    pub async fn test_market_sell_using_quote_quantity<S, F>(
         &self, symbol: S, quote_order_qty: F,
     ) -> Result<(), BinanceError>
     where
@@ -524,7 +524,7 @@ impl Account {
         let order = self.build_quote_quantity_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
@@ -542,7 +542,7 @@ impl Account {
     ///     let result = account.stop_limit_buy_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC);
     /// }
     /// ```
-    pub fn stop_limit_buy_order<S, F>(
+    pub async fn stop_limit_buy_order<S, F>(
         &self, symbol: S, qty: F, price: f64, stop_price: f64, time_in_force: TimeInForce,
     ) -> Result<Transaction, BinanceError>
     where
@@ -561,7 +561,7 @@ impl Account {
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Create a stop limit buy test order for the given symbol, price and stop price.
@@ -580,7 +580,7 @@ impl Account {
     ///     let result = account.test_stop_limit_buy_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC);
     /// }
     /// ```
-    pub fn test_stop_limit_buy_order<S, F>(
+    pub async fn test_stop_limit_buy_order<S, F>(
         &self, symbol: S, qty: F, price: f64, stop_price: f64, time_in_force: TimeInForce,
     ) -> Result<(), BinanceError>
     where
@@ -600,7 +600,7 @@ impl Account {
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
@@ -618,7 +618,7 @@ impl Account {
     ///     let result = account.stop_limit_sell_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC);
     /// }
     /// ```
-    pub fn stop_limit_sell_order<S, F>(
+    pub async fn stop_limit_sell_order<S, F>(
         &self, symbol: S, qty: F, price: f64, stop_price: f64, time_in_force: TimeInForce,
     ) -> Result<Transaction, BinanceError>
     where
@@ -637,7 +637,7 @@ impl Account {
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Create a stop limit sell order for the given symbol, price and stop price.
@@ -656,7 +656,7 @@ impl Account {
     ///     let result = account.test_stop_limit_sell_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC);
     /// }
     /// ```
-    pub fn test_stop_limit_sell_order<S, F>(
+    pub async fn test_stop_limit_sell_order<S, F>(
         &self, symbol: S, qty: F, price: f64, stop_price: f64, time_in_force: TimeInForce,
     ) -> Result<(), BinanceError>
     where
@@ -676,13 +676,13 @@ impl Account {
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
     /// Place a custom order
     #[allow(clippy::too_many_arguments)]
-    pub fn custom_order<S, F>(
+    pub async fn custom_order<S, F>(
         &self, symbol: S, qty: F, price: f64, stop_price: Option<f64>, order_side: OrderSide,
         order_type: OrderType, time_in_force: TimeInForce, new_client_order_id: Option<String>,
     ) -> Result<Transaction, BinanceError>
@@ -702,14 +702,14 @@ impl Account {
         };
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
-        self.client.post_signed(API::Spot(Spot::Order), request)
+        self.client.post_signed(API::Spot(Spot::Order), request).await
     }
 
     /// Place a test custom order
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
     #[allow(clippy::too_many_arguments)]
-    pub fn test_custom_order<S, F>(
+    pub async fn test_custom_order<S, F>(
         &self, symbol: S, qty: F, price: f64, stop_price: Option<f64>, order_side: OrderSide,
         order_type: OrderType, time_in_force: TimeInForce, new_client_order_id: Option<String>,
     ) -> Result<(), BinanceError>
@@ -730,12 +730,12 @@ impl Account {
         let order = self.build_order(sell);
         let request = build_signed_request(order, self.recv_window)?;
         self.client
-            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request)
+            .post_signed::<Empty>(API::Spot(Spot::OrderTest), request).await
             .map(|_| ())
     }
 
     // Check an order's status
-    pub fn cancel_order<S>(&self, symbol: S, order_id: u64) -> Result<OrderCanceled, BinanceError>
+    pub async fn cancel_order<S>(&self, symbol: S, order_id: u64) -> Result<OrderCanceled, BinanceError>
     where
         S: Into<String>,
     {
@@ -745,10 +745,10 @@ impl Account {
 
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .delete_signed(API::Spot(Spot::Order), Some(request))
+            .delete_signed(API::Spot(Spot::Order), Some(request)).await
     }
 
-    pub fn cancel_order_with_client_id<S>(
+    pub async fn cancel_order_with_client_id<S>(
         &self, symbol: S, orig_client_order_id: S,
     ) -> Result<OrderCanceled, BinanceError>
     where
@@ -760,16 +760,16 @@ impl Account {
 
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .delete_signed(API::Spot(Spot::Order), Some(request))
+            .delete_signed(API::Spot(Spot::Order), Some(request)).await
     }
 
-    pub fn cancel_order_with_client_id_rs<S>() {
+    pub async fn cancel_order_with_client_id_rs<S>() {
         
     }
     /// Place a test cancel order
     ///
     /// This order is sandboxed: it is validated, but not sent to the matching engine.
-    pub fn test_cancel_order<S>(&self, symbol: S, order_id: u64) -> Result<(), BinanceError>
+    pub async fn test_cancel_order<S>(&self, symbol: S, order_id: u64) -> Result<(), BinanceError>
     where
         S: Into<String>,
     {
@@ -778,12 +778,12 @@ impl Account {
         parameters.insert("orderId".into(), order_id.to_string());
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .delete_signed::<Empty>(API::Spot(Spot::OrderTest), Some(request))
+            .delete_signed::<Empty>(API::Spot(Spot::OrderTest), Some(request)).await
             .map(|_| ())
     }
 
     // Trade history
-    pub fn trade_history<S>(&self, symbol: S, order_id: Option<u64>) -> Result<Vec<TradeHistory>, BinanceError>
+    pub async fn trade_history<S>(&self, symbol: S, order_id: Option<u64>) -> Result<Vec<TradeHistory>, BinanceError>
     where
         S: Into<String>,
     {
@@ -795,7 +795,7 @@ impl Account {
 
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .get_signed(API::Spot(Spot::MyTrades), Some(request))
+            .get_signed(API::Spot(Spot::MyTrades), Some(request)).await
     }
 
     fn build_order(&self, order: OrderRequest) -> BTreeMap<String, String> {

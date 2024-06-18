@@ -9,8 +9,8 @@ mod tests {
     use mockito::{Server, Matcher};
     use float_cmp::*;
 
-    #[test]
-    fn get_account() {
+    #[tokio::test]
+    async fn get_account() {
         let mut server = Server::new();
         let mock_get_account = server.mock("GET", "/api/v3/account")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -25,7 +25,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let account = account.get_account().unwrap();
+        let account = account.get_account().await.unwrap();
 
         mock_get_account.assert();
 
@@ -50,8 +50,8 @@ mod tests {
         assert_eq!(second_balance.locked, "0.00000000");
     }
 
-    #[test]
-    fn get_balance() {
+    #[tokio::test]
+    async fn get_balance() {
         let mut server = Server::new();
         let mock_get_account = server.mock("GET", "/api/v3/account")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -66,7 +66,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let balance = account.get_balance("BTC").unwrap();
+        let balance = account.get_balance("BTC").await.unwrap();
 
         mock_get_account.assert();
 
@@ -75,8 +75,8 @@ mod tests {
         assert_eq!(balance.locked, "0.00000000");
     }
 
-    #[test]
-    fn get_open_orders() {
+    #[tokio::test]
+    async fn get_open_orders() {
         let mut server = Server::new();
         let mock_open_orders = server.mock("GET", "/api/v3/openOrders")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -91,7 +91,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let open_orders = account.get_open_orders("LTCBTC").unwrap();
+        let open_orders = account.get_open_orders("LTCBTC").await.unwrap();
 
         mock_open_orders.assert();
 
@@ -118,8 +118,8 @@ mod tests {
         assert_eq!(open_order.orig_quote_order_qty, "0.000000");
     }
 
-    #[test]
-    fn get_all_open_orders() {
+    #[tokio::test]
+    async fn get_all_open_orders() {
         let mut server = Server::new();
         let mock_open_orders = server.mock("GET", "/api/v3/openOrders")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -132,7 +132,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let open_orders = account.get_all_open_orders().unwrap();
+        let open_orders = account.get_all_open_orders().await.unwrap();
 
         mock_open_orders.assert();
 
@@ -159,8 +159,8 @@ mod tests {
         assert_eq!(open_order.orig_quote_order_qty, "0.000000");
     }
 
-    #[test]
-    fn cancel_all_open_orders() {
+    #[tokio::test]
+    async fn cancel_all_open_orders() {
         let mut server = Server::new();
         let mock_cancel_all_open_orders = server.mock("DELETE", "/api/v3/openOrders")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -175,7 +175,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let cancel_all_open_orders = account.cancel_all_open_orders("BTCUSDT").unwrap();
+        let cancel_all_open_orders = account.cancel_all_open_orders("BTCUSDT").await.unwrap();
 
         mock_cancel_all_open_orders.assert();
 
@@ -206,8 +206,8 @@ mod tests {
         );
     }
 
-    #[test]
-    fn order_status() {
+    #[tokio::test]
+    async fn order_status() {
         let mut server = Server::new();
         let mock_order_status = server.mock("GET", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -222,7 +222,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let order_status: Order = account.order_status("LTCBTC", Some(1), None).unwrap();
+        let order_status: Order = account.order_status("LTCBTC", Some(1), None).await.unwrap();
 
         mock_order_status.assert();
 
@@ -246,8 +246,8 @@ mod tests {
         assert_eq!(order_status.orig_quote_order_qty, "0.000000");
     }
 
-    #[test]
-    fn test_order_status() {
+    #[tokio::test]
+    async fn test_order_status() {
         let mut server = Server::new();
         let mock_test_order_status = server.mock("GET", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -262,13 +262,13 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        account.test_order_status("LTCBTC", 1).unwrap();
+        account.test_order_status("LTCBTC", 1).await.unwrap();
 
         mock_test_order_status.assert();
     }
 
-    #[test]
-    fn limit_buy() {
+    #[tokio::test]
+    async fn limit_buy() {
         let mut server = Server::new();
         let mock_limit_buy = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -281,7 +281,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let transaction: Transaction = account.limit_buy("LTCBTC", 1, 0.1).unwrap();
+        let transaction: Transaction = account.limit_buy("LTCBTC", 1, 0.1).await.unwrap();
 
         mock_limit_buy.assert();
 
@@ -305,8 +305,8 @@ mod tests {
         assert_eq!(transaction.side, "BUY");
     }
 
-    #[test]
-    fn test_limit_buy() {
+    #[tokio::test]
+    async fn test_limit_buy() {
         let mut server = Server::new();
         let mock_test_limit_buy = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -319,13 +319,13 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        account.test_limit_buy("LTCBTC", 1, 0.1).unwrap();
+        account.test_limit_buy("LTCBTC", 1, 0.1).await.unwrap();
 
         mock_test_limit_buy.assert();
     }
 
-    #[test]
-    fn limit_sell() {
+    #[tokio::test]
+    async fn limit_sell() {
         let mut server = Server::new();
         let mock_limit_sell = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -338,7 +338,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let transaction: Transaction = account.limit_sell("LTCBTC", 1, 0.1).unwrap();
+        let transaction: Transaction = account.limit_sell("LTCBTC", 1, 0.1).await.unwrap();
 
         mock_limit_sell.assert();
 
@@ -362,8 +362,8 @@ mod tests {
         assert_eq!(transaction.side, "SELL");
     }
 
-    #[test]
-    fn test_limit_sell() {
+    #[tokio::test]
+    async fn test_limit_sell() {
         let mut server = Server::new();
         let mock_test_limit_sell = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -376,13 +376,13 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        account.test_limit_sell("LTCBTC", 1, 0.1).unwrap();
+        account.test_limit_sell("LTCBTC", 1, 0.1).await.unwrap();
 
         mock_test_limit_sell.assert();
     }
 
-    #[test]
-    fn market_buy() {
+    #[tokio::test]
+    async fn market_buy() {
         let mut server = Server::new();
         let mock_market_buy = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -398,7 +398,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let transaction: Transaction = account.market_buy("LTCBTC", 1).unwrap();
+        let transaction: Transaction = account.market_buy("LTCBTC", 1).await.unwrap();
 
         mock_market_buy.assert();
 
@@ -422,8 +422,8 @@ mod tests {
         assert_eq!(transaction.side, "BUY");
     }
 
-    #[test]
-    fn test_market_buy() {
+    #[tokio::test]
+    async fn test_market_buy() {
         let mut server = Server::new();
         let mock_test_market_buy = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -439,13 +439,13 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        account.test_market_buy("LTCBTC", 1).unwrap();
+        account.test_market_buy("LTCBTC", 1).await.unwrap();
 
         mock_test_market_buy.assert();
     }
 
-    #[test]
-    fn market_buy_using_quote_quantity() {
+    #[tokio::test]
+    async fn market_buy_using_quote_quantity() {
         let mut server = Server::new();
         let mock_market_buy_using_quote_quantity = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -458,7 +458,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        match account.market_buy_using_quote_quantity("BNBBTC", 0.002) {
+        match account.market_buy_using_quote_quantity("BNBBTC", 0.002).await {
             Ok(answer) => {
                 assert!(answer.order_id == 1);
             }
@@ -468,8 +468,8 @@ mod tests {
         mock_market_buy_using_quote_quantity.assert();
     }
 
-    #[test]
-    fn test_market_buy_using_quote_quantity() {
+    #[tokio::test]
+    async fn test_market_buy_using_quote_quantity() {
         let mut server = Server::new();
         let mock_test_market_buy_using_quote_quantity = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -483,14 +483,14 @@ mod tests {
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
         account
-            .test_market_buy_using_quote_quantity("BNBBTC", 0.002)
+            .test_market_buy_using_quote_quantity("BNBBTC", 0.002).await
             .unwrap();
 
         mock_test_market_buy_using_quote_quantity.assert();
     }
 
-    #[test]
-    fn market_sell() {
+    #[tokio::test]
+    async fn market_sell() {
         let mut server = Server::new();
         let mock_market_sell = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -506,7 +506,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let transaction: Transaction = account.market_sell("LTCBTC", 1).unwrap();
+        let transaction: Transaction = account.market_sell("LTCBTC", 1).await.unwrap();
 
         mock_market_sell.assert();
 
@@ -530,8 +530,8 @@ mod tests {
         assert_eq!(transaction.side, "SELL");
     }
 
-    #[test]
-    fn test_market_sell() {
+    #[tokio::test]
+    async fn test_market_sell() {
         let mut server = Server::new();
         let mock_test_market_sell = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -547,13 +547,13 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        account.test_market_sell("LTCBTC", 1).unwrap();
+        account.test_market_sell("LTCBTC", 1).await.unwrap();
 
         mock_test_market_sell.assert();
     }
 
-    #[test]
-    fn market_sell_using_quote_quantity() {
+    #[tokio::test]
+    async fn market_sell_using_quote_quantity() {
         let mut server = Server::new();
         let mock_market_sell_using_quote_quantity = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -566,7 +566,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        match account.market_sell_using_quote_quantity("BNBBTC", 0.002) {
+        match account.market_sell_using_quote_quantity("BNBBTC", 0.002).await {
             Ok(answer) => {
                 assert!(answer.order_id == 1);
             }
@@ -576,8 +576,8 @@ mod tests {
         mock_market_sell_using_quote_quantity.assert();
     }
 
-    #[test]
-    fn test_market_sell_using_quote_quantity() {
+    #[tokio::test]
+    async fn test_market_sell_using_quote_quantity() {
         let mut server = Server::new();
         let mock_test_market_sell_using_quote_quantity = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -591,14 +591,14 @@ mod tests {
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
         account
-            .test_market_sell_using_quote_quantity("BNBBTC", 0.002)
+            .test_market_sell_using_quote_quantity("BNBBTC", 0.002).await
             .unwrap();
 
         mock_test_market_sell_using_quote_quantity.assert();
     }
 
-    #[test]
-    fn stop_limit_buy_order() {
+    #[tokio::test]
+    async fn stop_limit_buy_order() {
         let mut server = Server::new();
         let mock_stop_limit_buy_order = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -612,7 +612,7 @@ mod tests {
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
         let transaction: Transaction = account
-            .stop_limit_buy_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC)
+            .stop_limit_buy_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC).await
             .unwrap();
 
         mock_stop_limit_buy_order.assert();
@@ -638,8 +638,8 @@ mod tests {
         assert_eq!(transaction.side, "BUY");
     }
 
-    #[test]
-    fn test_stop_limit_buy_order() {
+    #[tokio::test]
+    async fn test_stop_limit_buy_order() {
         let mut server = Server::new();
         let mock_test_stop_limit_buy_order = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -653,14 +653,14 @@ mod tests {
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
         account
-            .test_stop_limit_buy_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC)
+            .test_stop_limit_buy_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC).await
             .unwrap();
 
         mock_test_stop_limit_buy_order.assert();
     }
 
-    #[test]
-    fn stop_limit_sell_order() {
+    #[tokio::test]
+    async fn stop_limit_sell_order() {
         let mut server = Server::new();
         let mock_stop_limit_sell_order = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -674,7 +674,7 @@ mod tests {
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
         let transaction: Transaction = account
-            .stop_limit_sell_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC)
+            .stop_limit_sell_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC).await
             .unwrap();
 
         mock_stop_limit_sell_order.assert();
@@ -700,8 +700,8 @@ mod tests {
         assert_eq!(transaction.side, "SELL");
     }
 
-    #[test]
-    fn test_stop_limit_sell_order() {
+    #[tokio::test]
+    async fn test_stop_limit_sell_order() {
         let mut server = Server::new();
         let mock_test_stop_limit_sell_order = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -715,14 +715,14 @@ mod tests {
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
         account
-            .test_stop_limit_sell_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC)
+            .test_stop_limit_sell_order("LTCBTC", 1, 0.1, 0.09, TimeInForce::GTC).await
             .unwrap();
 
         mock_test_stop_limit_sell_order.assert();
     }
 
-    #[test]
-    fn custom_order() {
+    #[tokio::test]
+    async fn custom_order() {
         let mut server = Server::new();
         let mock_custom_order = server.mock("POST", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -745,7 +745,7 @@ mod tests {
                 OrderType::Market,
                 TimeInForce::GTC,
                 Some("6gCrw2kRUAF9CvJDGP16IP".into()),
-            )
+            ).await
             .unwrap();
 
         mock_custom_order.assert();
@@ -771,8 +771,8 @@ mod tests {
         assert_eq!(transaction.side, "SELL");
     }
 
-    #[test]
-    fn test_custom_order() {
+    #[tokio::test]
+    async fn test_custom_order() {
         let mut server = Server::new();
         let mock_test_custom_order = server.mock("POST", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -795,14 +795,14 @@ mod tests {
                 OrderType::Market,
                 TimeInForce::GTC,
                 None,
-            )
+            ).await
             .unwrap();
 
         mock_test_custom_order.assert();
     }
 
-    #[test]
-    fn cancel_order() {
+    #[tokio::test]
+    async fn cancel_order() {
         let mut server = Server::new();
         let mock_cancel_order = server.mock("DELETE", "/api/v3/order")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -817,7 +817,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let cancelled_order = account.cancel_order("BTCUSDT", 1).unwrap();
+        let cancelled_order = account.cancel_order("BTCUSDT", 1).await.unwrap();
 
         mock_cancel_order.assert();
 
@@ -827,8 +827,8 @@ mod tests {
         assert_eq!(cancelled_order.client_order_id.unwrap(), "cancelMyOrder1");
     }
 
-    #[test]
-    fn test_cancel_order() {
+    #[tokio::test]
+    async fn test_cancel_order() {
         let mut server = Server::new();
         let mock_test_cancel_order = server.mock("DELETE", "/api/v3/order/test")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -843,13 +843,13 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        account.test_cancel_order("BTCUSDT", 1).unwrap();
+        account.test_cancel_order("BTCUSDT", 1).await.unwrap();
 
         mock_test_cancel_order.assert();
     }
 
-    #[test]
-    fn trade_history() {
+    #[tokio::test]
+    async fn trade_history() {
         let mut server = Server::new();
         let mock_trade_history = server.mock("GET", "/api/v3/myTrades")
             .with_header("content-type", "application/json;charset=UTF-8")
@@ -864,7 +864,7 @@ mod tests {
             .set_recv_window(1234);
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
-        let histories = account.trade_history("BTCUSDT", None).unwrap();
+        let histories = account.trade_history("BTCUSDT", None).await.unwrap();
 
         mock_trade_history.assert();
 

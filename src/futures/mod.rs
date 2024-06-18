@@ -4,3 +4,4 @@ pub mod market;
 pub mod model;
 pub mod userstream;
 pub mod websockets;
+pub mod websockets_async;

@@ -17,7 +17,7 @@ use tungstenite::stream::MaybeTlsStream;
 use tungstenite::handshake::client::Response;
 
 #[allow(clippy::all)]
-enum FuturesWebsocketAPI {
+pub enum FuturesWebsocketAPI {
     Default,
     MultiStream,
     Custom(String),
@@ -30,7 +30,7 @@ pub enum FuturesMarket {
 }
 
 impl FuturesWebsocketAPI {
-    fn params(self, market: &FuturesMarket, subscription: &str) -> String {
+    pub fn params(self, market: &FuturesMarket, subscription: &str) -> String {
         let baseurl = match market {
             FuturesMarket::USDM => "wss://fstream.binance.com",
             FuturesMarket::COINM => "wss://dstream.binance.com",

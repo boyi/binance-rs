@@ -14,28 +14,28 @@ pub struct Savings {
 
 impl Savings {
     /// Get all coins available for deposit and withdrawal
-    pub fn get_all_coins(&self) -> Result<Vec<CoinInfo>, BinanceError> {
+    pub async fn get_all_coins(&self) -> Result<Vec<CoinInfo>, BinanceError> {
         let request = build_signed_request(BTreeMap::new(), self.recv_window)?;
         self.client
-            .get_signed(API::Savings(Sapi::AllCoins), Some(request))
+            .get_signed(API::Savings(Sapi::AllCoins), Some(request)).await
     }
 
     /// Fetch details of assets supported on Binance.
-    pub fn asset_detail(&self, asset: Option<String>) -> Result<BTreeMap<String, AssetDetail>, BinanceError> {
+    pub async fn asset_detail(&self, asset: Option<String>) -> Result<BTreeMap<String, AssetDetail>, BinanceError> {
         let mut parameters = BTreeMap::new();
         if let Some(asset) = asset {
             parameters.insert("asset".into(), asset);
         }
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .get_signed(API::Savings(Sapi::AssetDetail), Some(request))
+            .get_signed(API::Savings(Sapi::AssetDetail), Some(request)).await
     }
 
     /// Fetch deposit address with network.
     ///
     /// You can get the available networks using `get_all_coins`.
     /// If no network is specified, the address for the default network is returned.
-    pub fn deposit_address<S>(&self, coin: S, network: Option<String>) -> Result<DepositAddress, BinanceError>
+    pub async fn deposit_address<S>(&self, coin: S, network: Option<String>) -> Result<DepositAddress, BinanceError>
     where
         S: Into<String>,
     {
@@ -46,10 +46,10 @@ impl Savings {
         }
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .get_signed(API::Savings(Sapi::DepositAddress), Some(request))
+            .get_signed(API::Savings(Sapi::DepositAddress), Some(request)).await
     }
 
-    pub fn transfer_funds<S>(
+    pub async fn transfer_funds<S>(
         &self, asset: S, amount: f64, transfer_type: SpotFuturesTransferType,
     ) -> Result<TransactionId, BinanceError>
     where
@@ -61,6 +61,6 @@ impl Savings {
         parameters.insert("type".into(), (transfer_type as u8).to_string());
         let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .post_signed(API::Savings(Sapi::SpotFuturesTransfer), request)
+            .post_signed(API::Savings(Sapi::SpotFuturesTransfer), request).await
     }
 }
