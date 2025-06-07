@@ -253,6 +253,7 @@ pub enum OrderStatus {
     Partially_Filled,
     Pending_Cancel,
     Rejected,
+    Expired_In_Match,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

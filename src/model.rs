@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{from_value, Value};
 use std::convert::TryFrom;
 use crate::errors::BinanceError;
+use serde_with::{serde_as, DisplayFromStr};
 
 #[derive(Deserialize, Clone)]
 pub struct Empty {}
@@ -125,6 +126,11 @@ pub enum Filters {
         min_trailing_below_delta: Option<u16>,
         max_trailing_below_delta: Option<u16>,
     },
+    #[serde(rename = "POSITION_RISK_CONTROL")]
+    #[serde(rename_all = "camelCase")]
+    PositionRiskControl {
+
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -208,6 +214,7 @@ pub enum OrderStatus {
     Partially_Filled,
     Pending_Cancel,
     Rejected,
+    Expired_In_Match,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -423,6 +430,21 @@ pub struct UserDataStreamExpiredEvent {
     #[serde(rename = "E")]
     pub event_time: u64,
 }
+
+#[serde_as]
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ListenKeyExpiredEvent {
+    #[serde(rename = "e")]
+    pub event_type: String,
+    #[serde(rename = "E")]
+    #[serde_as(as = "DisplayFromStr")]
+    pub event_time: u64,
+    #[serde(rename = "listenKey")]
+    pub listen_key: String,
+}
+
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -730,6 +752,50 @@ pub struct TradeEvent {
     #[serde(skip, rename = "M")]
     pub m_ignore: bool,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TradeLiteEvent {
+    #[serde(rename = "e")]
+    pub event_type: String,
+
+    #[serde(rename = "E")]
+    pub event_time: u64,
+
+    #[serde(rename = "T")]
+    pub trade_order_time: u64,
+
+    #[serde(rename = "s")]
+    pub symbol: String,
+
+    #[serde(rename = "q")]
+    pub qty: String,
+
+    #[serde(rename = "p")]
+    pub orig_price: String,
+
+    #[serde(rename = "m")]
+    pub is_trader_maker: bool,
+
+    #[serde(rename = "c")]
+    pub client_order_id: String,
+
+    #[serde(rename = "S")]
+    pub side: String,
+
+    #[serde(rename = "L")]
+    pub last_filled_price: String,
+    
+    #[serde(rename = "l")]
+    pub order_last_fill_qty: String,
+
+    #[serde(rename = "t")]
+    pub trade_id: u64,
+
+    #[serde(rename = "i")]
+    pub trade_order_id: u64,
+}
+
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1463,6 +1529,7 @@ pub(crate) mod string_or_float {
     }
 }
 
+
 pub(crate) mod string_or_float_opt {
     use std::fmt;
 
@@ -1485,6 +1552,7 @@ pub(crate) mod string_or_float_opt {
     {
         #[derive(Deserialize)]
         #[serde(untagged)]
+        #[allow(dead_code)]
         enum StringOrFloat {
             String(String),
             Float(f64),

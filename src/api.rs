@@ -89,6 +89,7 @@ pub enum Futures {
     ChangeInitialLeverage,
     Account,
     OpenOrders,
+    BatchOrders,
     UserDataStream,
     Income,
 }
@@ -163,6 +164,7 @@ impl From<API> for String {
                 Futures::ChangeInitialLeverage => "/fapi/v1/leverage",
                 Futures::Account => "/fapi/v2/account",
                 Futures::OpenOrders => "/fapi/v1/openOrders",
+                Futures::BatchOrders => "/fapi/v1/batchOrders",
                 Futures::UserDataStream => "/fapi/v1/listenKey",
                 Futures::Income => "/fapi/v1/income",
             },

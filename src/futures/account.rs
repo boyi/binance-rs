@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
+
 use crate::util::build_signed_request;
 use crate::errors::BinanceError;
 use crate::client::Client;
@@ -434,33 +435,18 @@ impl FuturesAccount {
     }
 
     // Custom order for for professional traders
-    pub async fn custom_batch_orders(&self, _order_count: u64, order_requests: Vec<CustomOrderRequest>) -> Result<Transaction, BinanceError> {
-        let request = String::from("");
-        for order_request in order_requests {
-            let order = OrderRequest {
-                symbol: order_request.symbol,
-                side: order_request.side,
-                position_side: order_request.position_side,
-                order_type: order_request.order_type,
-                time_in_force: order_request.time_in_force,
-                qty: order_request.qty,
-                reduce_only: order_request.reduce_only,
-                price: order_request.price,
-                stop_price: order_request.stop_price,
-                close_position: order_request.close_position,
-                activation_price: order_request.activation_price,
-                callback_rate: order_request.callback_rate,
-                working_type: order_request.working_type,
-                price_protect: order_request.price_protect,
-                new_client_order_id: order_request.new_client_order_id,
-            };
-            let _order = self.build_order(order);
-            // TODO : make a request string for batch orders api
-            // let request = build_signed_request(order, self.recv_window)?;
-        }
+    pub async fn custom_batch_orders(&self, order_requests: Vec<OrderRequest>) -> Result<(), BinanceError> {
+        let params: Vec<BTreeMap<String, String>> = order_requests.into_iter().map(|r| self.build_order(r)).collect();
+        // convert to json, without space inside. default behavior of serde_json::to_string without space
+        let json = serde_json::to_string(&params).unwrap();
+        let mut parameters = BTreeMap::new();
+        parameters.insert("batchOrders".to_string(), json);
+        let request = build_signed_request(parameters, self.recv_window)?;
         self.client
-            .post_signed(API::Futures(Futures::Order), request).await
+            .post_signed(API::Futures(Futures::BatchOrders), request).await
     }
+
+
 
     pub async fn get_all_orders<S, F, N>(
         &self, symbol: S, order_id: F, start_time: F, end_time: F, limit: N,
@@ -623,6 +609,27 @@ impl FuturesAccount {
         self.client
             .post_signed::<Empty>(API::Futures(Futures::PositionSide), request).await
             .map(|_| ())
+    }
+
+    pub async fn cancel_batch_orders<S>(&self, symbol: S, 
+        order_ids: &[String], 
+        client_order_ids: &[String]) 
+        -> Result<(), BinanceError>
+    where
+        S: Into<String>,
+    {
+        let mut parameters: BTreeMap<String, String> = BTreeMap::new();
+        parameters.insert("symbol".into(), symbol.into());
+        if order_ids.len() > 0 {
+            parameters.insert("orderIdList".into(), format!("[{}]", order_ids.join(",")));
+        }
+        if client_order_ids.len() > 0 {
+            parameters.insert("origClientOrderIdList".into(), serde_json::to_string(&client_order_ids).unwrap());
+        }
+
+        let request = build_signed_request(parameters, self.recv_window)?;
+        self.client
+            .delete_signed(API::Futures(Futures::BatchOrders), Some(request)).await
     }
 
     pub async fn cancel_all_open_orders<S>(&self, symbol: S) -> Result<(), BinanceError>

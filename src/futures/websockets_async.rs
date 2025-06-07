@@ -1,14 +1,16 @@
 use crate::errors::BinanceError;
 use crate::config::Config;
 use crate::model::{
-    AccountUpdateEvent, AggrTradesEvent, ContinuousKlineEvent, DayTickerEvent, DepthOrderBookEvent, FutureBalanceUpdateEvent, FuturesBookTickerEvent, IndexKlineEvent, IndexPriceEvent, KlineEvent, LiquidationEvent, MarkPriceEvent, MiniTickerEvent, OrderBook, TradeEvent, UserDataStreamExpiredEvent
+    AccountUpdateEvent, AggrTradesEvent, ContinuousKlineEvent, DayTickerEvent, DepthOrderBookEvent, FutureBalanceUpdateEvent, FuturesBookTickerEvent, IndexKlineEvent, IndexPriceEvent, KlineEvent, LiquidationEvent, ListenKeyExpiredEvent, MarkPriceEvent, MiniTickerEvent, OrderBook, TradeEvent, TradeLiteEvent, UserDataStreamExpiredEvent
 };
 use crate::futures::model;
 use crate::bail;
 use tokio::sync::mpsc;
+use tokio::time::{self, interval};
 use url::Url;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 use tokio::net::TcpStream;
 
 use tokio_tungstenite::{
@@ -58,6 +60,7 @@ pub enum FuturesWebsocketEvent {
     OrderTrade(model::OrderTradeEvent),
     AggrTrades(AggrTradesEvent),
     Trade(TradeEvent),
+    TradeLite(TradeLiteEvent),
     OrderBook(OrderBook),
     DayTicker(DayTickerEvent),
     MiniTicker(MiniTickerEvent),
@@ -73,10 +76,12 @@ pub enum FuturesWebsocketEvent {
     Liquidation(LiquidationEvent),
     DepthOrderBook(DepthOrderBookEvent),
     BookTicker(FuturesBookTickerEvent),
-    UserDataStreamExpiredEvent(UserDataStreamExpiredEvent),
+    UserDataStreamExpired(UserDataStreamExpiredEvent),
+    ListenKeyExpired(ListenKeyExpiredEvent),
 }
 
 pub struct FuturesAsyncWebSockets {
+    pub name: String, 
     pub socket: Option<(WebSocketStream<MaybeTlsStream<TcpStream>>, Response)>,
 }
 
@@ -97,6 +102,7 @@ enum FuturesEvents {
     MarkPriceEvent(MarkPriceEvent),
     VecMarkPriceEvent(Vec<MarkPriceEvent>),
     TradeEvent(TradeEvent),
+    TradeLiteEvent(TradeLiteEvent),
     KlineEvent(KlineEvent),
     ContinuousKlineEvent(ContinuousKlineEvent),
     IndexKlineEvent(IndexKlineEvent),
@@ -104,23 +110,27 @@ enum FuturesEvents {
     OrderBook(OrderBook),
     DepthOrderBookEvent(DepthOrderBookEvent),
     UserDataStreamExpiredEvent(UserDataStreamExpiredEvent),
+    ListenKeyExpiredEvent(ListenKeyExpiredEvent),
 }
 
 impl FuturesAsyncWebSockets {
     pub fn new() -> FuturesAsyncWebSockets
     {
         FuturesAsyncWebSockets {
-            socket: None
+            socket: None,
+            name: "".to_string()
         }
     }
 
     pub async fn connect(&mut self, market: &FuturesMarket, subscription: &str) -> Result<(), BinanceError> {
+        self.name = subscription.to_string();
         self.connect_wss(&FuturesWebsocketAPI::Default.params(market, subscription)).await
     }
 
     pub async fn connect_with_config(
         &mut self, market: &FuturesMarket, subscription: &str, config: & Config,
     ) -> Result<(), BinanceError> {
+        self.name = subscription.to_string();
         self.connect_wss(
             &FuturesWebsocketAPI::Custom(config.ws_endpoint.clone()).params(market, subscription),
         ).await
@@ -133,6 +143,7 @@ impl FuturesAsyncWebSockets {
     }
 
     async fn connect_wss(&mut self, wss: &str) -> Result<(), BinanceError> {
+        log::info!("connecting to {}", wss);
         let url = Url::parse(wss)?;
         match connect_async(url).await {
             Ok(tuple) => {
@@ -173,56 +184,133 @@ impl FuturesAsyncWebSockets {
                 FuturesEvents::OrderBook(v) => Some(FuturesWebsocketEvent::OrderBook(v)),
                 FuturesEvents::DepthOrderBookEvent(v) => Some(FuturesWebsocketEvent::DepthOrderBook(v)),
                 FuturesEvents::AggrTradesEvent(v) => Some(FuturesWebsocketEvent::AggrTrades(v)),
-                FuturesEvents::UserDataStreamExpiredEvent(v) => Some(FuturesWebsocketEvent::UserDataStreamExpiredEvent(v)),
+                FuturesEvents::TradeLiteEvent(v) => Some(FuturesWebsocketEvent::TradeLite(v)),
+                FuturesEvents::ListenKeyExpiredEvent(v) => Some(FuturesWebsocketEvent::ListenKeyExpired(v)),
+                FuturesEvents::UserDataStreamExpiredEvent(v) => Some(FuturesWebsocketEvent::UserDataStreamExpired(v)),
             }
         } else {
             None
         }
     }
     
-
+    
     pub async fn event_loop(&mut self, running: &AtomicBool, evt_tx: mpsc::Sender<FuturesWebsocketEvent>) -> Result<(), BinanceError> {
+        let mut ping_interval = interval(Duration::from_secs(30));
+        ping_interval.tick().await; // 手动跳过第一次
+        let mut last_received = time::Instant::now();
         while running.load(Ordering::Relaxed) {
-            if let Some(ref mut socket) = self.socket {
-                if let Some(message) = socket.0.next().await {
-                    match message {
-                        Ok(Message::Text(msg)) => {
-                            
-                            let value: serde_json::Value = serde_json::from_str(&msg)?;
-                            if let Some(data) = value.get("data") {
-                                if let Some(evt) = Self::compose_event(data.clone()) {
-                                    match evt_tx.send(evt).await {
-                                        Ok(_) => (),
-                                        Err(e) => bail!(format!("Error on sending message, {}", e)),
-                                    };
-                                } else {
-                                    println!("Unknown event: {:?}", msg);
+             // 直接 match self.socket
+            let socket = match &mut self.socket {
+                Some(socket) => socket,
+                None => bail!("self.socket is None"),
+            };
+            tokio::select! {
+                _ = ping_interval.tick() => {
+                    match socket.0.send(Message::Ping(Vec::new())).await {
+                        Ok(_) => log::info!("Sent periodic ping for {}", self.name),
+                        Err(e) => {
+                            log::error!("Ping send error: {}", e);
+                            bail!(format!("Ping send error: {}", e));
+                        }
+                    }
+                },
+                result = socket.0.next() => {
+                    match result {
+                        Some(message) => {
+                            last_received = time::Instant::now();
+                            // 原有的消息处理逻辑
+                            match message {
+                                Ok(Message::Text(msg)) => {
+                                    // 处理文本消息
+                                    let value: serde_json::Value = serde_json::from_str(&msg)?;
+                                    if let Some(data) = value.get("data") {
+                                        if let Some(evt) = Self::compose_event(data.clone()) {
+                                            match evt_tx.try_send(evt) {
+                                                Ok(_) => (),
+                                                Err(e) => {
+                                                    let err_str = format!("Error on sending message, {}", e);
+                                                    log::error!("{}", err_str);
+                                                    bail!(err_str)
+                                                },
+                                            };
+                                        } else {
+                                            log::error!("Unknown event: {:?}", msg);
+                                        }
+                                    } else if let Some(evt) = Self::compose_event(value) {
+                                        match evt {
+                                            FuturesWebsocketEvent::UserDataStreamExpired(e) => {
+                                                let err_str = format!("User data stream expired:{:#?}", e);
+                                                log::error!("{}", err_str);
+                                                bail!(err_str);
+                                            },
+                                            FuturesWebsocketEvent::ListenKeyExpired(e) => {
+                                                let err_str = format!("Listen key expired:{:#?}", e);
+                                                log::error!("{}", err_str);
+                                                bail!(err_str);
+                                            },
+                                            _ => (),
+                                        }
+                                        
+                                        match evt_tx.try_send(evt) {
+                                            Ok(_) => (),
+                                            Err(e) => {
+                                                let err_str = format!("Error on sending message, {}", e);
+                                                log::error!("{}", err_str);
+                                                bail!(err_str);
+                                            },
+                                        };
+                                    } else {
+                                        log::error!("Unknown event: {:?}", msg);
+                                    }
                                 }
-                            } else if let Some(evt) = Self::compose_event(value) {
-                                if let FuturesWebsocketEvent::UserDataStreamExpiredEvent(e)  = evt {
-                                    bail!(format!("User data stream expired:{:#?}", e));
+                                Ok(Message::Ping(ping_data)) => {
+                                    if let Some(socket) = &mut self.socket {
+                                        log::info!("binance receive ping: {:?}, {}", ping_data, self.name);
+                                        socket.0.send(Message::Pong(ping_data)).await.unwrap();
+                                    }
                                 }
-                                match evt_tx.send(evt).await {
-                                    Ok(_) => (),
-                                    Err(e) => bail!(format!("Error on sending message, {}", e)),
-                                };
-                            } else {
-                                println!("Unknown event: {:?}", msg);
+                                Ok(Message::Pong(pong_data)) => {
+                                    log::info!("biance receive pong: {:?}, {}", pong_data, self.name)
+                                },
+                                Ok(Message::Binary(_))  => {
+                                    log::info!("Received binary message");
+                                }
+                                Ok(Message::Frame(_)) => {
+                                    log::info!("Received frame message");
+                                },
+                                Ok(Message::Close(e)) => {
+                                    let err_str = format!("Disconnected, {:?}", e);
+                                    log::error!("{}", err_str);
+                                    bail!(err_str);
+                                },
+                                Err(e) => {
+                                    let err_str = format!("Error on receiving message,{}", e);
+                                    log::error!("{}", err_str);
+                                    bail!(err_str);
+                                }
                             }
                         }
-                        Ok(Message::Ping(ping_data)) => {
-                            socket.0.send(Message::Pong(ping_data)).await.unwrap();
+                        None => {
+                            let err_str = format!("Futures Ws Connection Closed");
+                            log::error!("{}", err_str);
+                            bail!(err_str);
                         }
-                        Ok(Message::Pong(_)) | Ok(Message::Binary(_)) | Ok(Message::Frame(_)) => (),
-                        Ok(Message::Close(e)) => bail!(format!("Disconnected {:?}", e)),
-                        Err(e) => {
-                            bail!(format!("Error on receiving message, {}", e));
-                        },
                     }
+                },
+                _ = time::sleep(Duration::from_secs(1)) => {
+                    if last_received.elapsed() > Duration::from_secs(120) {
+                        let err_str = format!("No message received for 60 seconds");
+                        log::error!("{}", err_str);
+                        bail!(err_str);
+                    }
+                    // 每秒检查一次 running 状态
+
                 }
             }
         }
-        bail!("running loop closed");
+        let err_str = format!("running loop closed");
+        log::error!("{}", err_str);
+        bail!(err_str);
     }
 
 

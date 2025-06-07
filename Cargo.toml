@@ -34,14 +34,22 @@ sha2 = "0.10.6"
 serde = { version = "1.0.174", features = ["derive"] }
 serde_json = "1.0"
 error-chain = { version = "0.12.4", default-features = false }
-reqwest = { version = "0.11.8", features = ["blocking", "json"] }
-tungstenite = { version = "0.19.0", features = ["native-tls"] }
-tokio-tungstenite = { version = "0.21.0", features = ["native-tls"] }
+# reqwest = { version = "0.11.8", features = ["blocking", "json"] }
+# tungstenite = { version = "0.19.0", features = ["native-tls"] }
+# tokio-tungstenite = { version = "0.21.0", features = ["native-tls"] }
+
+reqwest = { version = "0.11.8", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+tungstenite = { version = "0.19.0", features = ["rustls"] }  # 使用rustls替代native-tls
+tokio-tungstenite = { version = "0.20.0", features = ["rustls"] }  # 使用rustls替代native-tls
+
 url = "2.4.0"
 log = "0.4.20"
+serde_with = "1.5"
 
 [features]
-vendored-tls = ["reqwest/native-tls-vendored", "tungstenite/native-tls-vendored"]
+# 可以保留这个特性，但不再需要
+vendored-tls = ["reqwest/rustls-tls"]
+# vendored-tls = ["reqwest/native-tls-vendored", "tungstenite/native-tls-vendored"]
 
 [dev-dependencies]
 csv ="1.2.2"
@@ -50,6 +58,7 @@ env_logger = "0.10.0"
 criterion = "0.5"
 float-cmp = "0.9.0"
 serde_json = "1.0"
+
 
 [[bench]]
 name = "websocket_benchmark"

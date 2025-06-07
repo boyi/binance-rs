@@ -736,15 +736,11 @@ mod tests {
         let account: Account = Binance::new_with_config(None, None, &config);
         let _ = env_logger::try_init();
         let transaction: Transaction = account
-            .custom_order(
-                "LTCBTC",
-                1,
-                0.1,
-                None,
-                OrderSide::Buy,
-                OrderType::Market,
-                TimeInForce::GTC,
-                Some("6gCrw2kRUAF9CvJDGP16IP".into()),
+                .custom_order(OrderRequest { 
+                    symbol: "LTCBTC".to_string(), qty: "1.0".to_string(), price: Some("0.1".to_string()), stop_price: None,
+                    order_side: OrderSide::Buy, order_type: OrderType::Market, 
+                    time_in_force: Some(TimeInForce::GTC), 
+                    new_client_order_id:  Some("6gCrw2kRUAF9CvJDGP16IP".into()) }
             ).await
             .unwrap();
 
