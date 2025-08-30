@@ -134,6 +134,9 @@ pub enum Filters {
     #[serde(rename = "MAX_NUM_ORDER_LISTS")]
     #[serde(rename_all = "camelCase")]
     MaxNumOrderLists {},
+    #[serde(rename = "MAX_NUM_ORDER_AMENDS")]
+    #[serde(rename_all = "camelCase")]
+    MaxNumOrderAmends {},
     // MaxNumOrderLists { max_num_order_lists: Option<u16> },
 }
 
