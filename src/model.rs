@@ -139,8 +139,7 @@ pub enum Filters {
     MaxNumOrderAmends {},
 
     #[serde(other)]
-    #[serde(untagged)]
-    Unknown(Value),
+    Unknown,
     // MaxNumOrderLists { max_num_order_lists: Option<u16> },
 }
 
