@@ -131,6 +131,10 @@ pub enum Filters {
     PositionRiskControl {
 
     },
+    #[serde(rename = "MAX_NUM_ORDER_LISTS")]
+    #[serde(rename_all = "camelCase")]
+    MaxNumOrderLists {},
+    // MaxNumOrderLists { max_num_order_lists: Option<u16> },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
