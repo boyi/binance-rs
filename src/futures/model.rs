@@ -3,8 +3,24 @@ use crate::model::{string_or_float, string_or_float_opt, string_or_bool};
 
 pub use crate::model::{
     Asks, Bids, BookTickers, Filters, KlineSummaries, KlineSummary, RateLimit, ServerTime,
-    SymbolPrice, Tickers,
+    SymbolPrice,
 };
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Tickers {
+    pub symbol: String,
+    #[serde(with = "string_or_float")]
+    pub bid_price: f64,
+    #[serde(with = "string_or_float")]
+    pub bid_qty: f64,
+    #[serde(with = "string_or_float")]
+    pub ask_price: f64,
+    #[serde(with = "string_or_float")]
+    pub ask_qty: f64,
+    pub time: i64,
+    pub last_update_id: u64,
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
